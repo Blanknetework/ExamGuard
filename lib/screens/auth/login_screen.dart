@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'sign_up_screen.dart';
-import 'examiner_dashboard.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:examapp/screens/auth/sign_up_screen.dart';
+import 'package:examapp/screens/examiner/examiner_dashboard.dart';
+import 'package:examapp/screens/student/student_dashboard.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _selectedRole;
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,75 +28,120 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedRole == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please select a role')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a role')));
         return;
       }
-      
-      // Form is valid and role is selected.
-      // Show professional success notification
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_outline, color: Colors.white),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Log In Successful!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(20),
-          elevation: 4,
-          duration: const Duration(milliseconds: 1500),
-        ),
-      );
 
-      // Delay briefly to show the notification, then navigate
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const ExaminerDashboard(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.0, 0.05),
-                    end: Offset.zero,
-                  ).animate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final email = _emailController.text.trim().toLowerCase();
+        final password = _passwordController.text;
+
+        // Sign in with Firebase Auth
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+
+        // Fetch User Role
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+        String? resolvedRole;
+
+        if (userDoc.exists) {
+            resolvedRole = userDoc.get('role');
+        }
+
+        if (resolvedRole != _selectedRole) {
+            await FirebaseAuth.instance.signOut();
+            if (!mounted) return;
+            setState(() { _isLoading = false; });
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: const Row(
+                    children: [
+                        Icon(Icons.error_outline, color: Colors.white),
+                        SizedBox(width: 12),
+                        Text('Role mismatch. That account is not registered as this role.', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    ],
                     ),
-                  ),
-                  child: child,
+                    backgroundColor: Colors.red.shade600,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(20),
+                    duration: const Duration(seconds: 4),
                 ),
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 500),
+            );
+            return;
+        }
+
+        if (!mounted) return;
+
+        // Show success
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Welcome! Logged in as $resolvedRole.',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(20),
+            elevation: 4,
+            duration: const Duration(milliseconds: 1500),
           ),
         );
-      });
+
+        final role = resolvedRole;
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  role == 'Test Taker' ? const StudentDashboard() : const ExaminerDashboard(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                    child: child,
+                  ),
+                );
+              },
+              transitionDuration: const Duration(milliseconds: 500),
+            ),
+          );
+        });
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        String message = 'Invalid credentials. Please try again.';
+        if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          message = 'Account not found or password incorrect.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red.shade600, behavior: SnackBarBehavior.floating));
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade600, behavior: SnackBarBehavior.floating));
+      }
     }
   }
 
@@ -432,7 +481,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _submit,
+                        onPressed: _isLoading ? null : _submit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2F66D0),
                           shape: RoundedRectangleBorder(
@@ -440,8 +489,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Log In',
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Log In',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,

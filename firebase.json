@@ -1,0 +1,28 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "examguard-e17e9",
+          "appId": "1:571559113831:android:b619bc2b5a1929913150c2",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "examguard-e17e9",
+          "configurations": {
+            "android": "1:571559113831:android:b619bc2b5a1929913150c2",
+            "ios": "1:571559113831:ios:9e98d593df528af63150c2",
+            "macos": "1:571559113831:ios:9e98d593df528af63150c2",
+            "web": "1:571559113831:web:30ebbfa5406298283150c2",
+            "windows": "1:571559113831:web:66176fb34713f4e73150c2"
+          }
+        }
+      }
+    }
+  }
+}

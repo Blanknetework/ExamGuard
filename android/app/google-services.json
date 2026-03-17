@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "571559113831",
+    "project_id": "examguard-e17e9",
+    "storage_bucket": "examguard-e17e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:571559113831:android:b619bc2b5a1929913150c2",
+        "android_client_info": {
+          "package_name": "com.example.examapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDxJOSrQy8YndSM0CBMHLLEU81vYwm2t7s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
