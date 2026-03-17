@@ -64,11 +64,15 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                     ),
                   ),
                 ),
-                const Icon(Icons.settings_outlined, color: Colors.white, size: 28),
+                const Icon(
+                  Icons.settings_outlined,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ],
             ),
           ),
-          
+
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -85,12 +89,16 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                         });
                       }),
                       _buildActionCard('Manage\nRooms', Icons.groups, () {}),
-                      _buildActionCard('View\nResults', Icons.calculate_outlined, () {}),
+                      _buildActionCard(
+                        'View\nResults',
+                        Icons.calculate_outlined,
+                        () {},
+                      ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   _buildDynamicContent(),
                 ],
               ),
@@ -106,11 +114,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
           backgroundColor: const Color(0xFF2F66D0),
           shape: const CircleBorder(),
           elevation: 2,
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
-            size: 40,
-          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 40),
         ),
       ),
     );
@@ -200,10 +204,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
               ),
               child: const Text(
                 'Create New Exam',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -253,7 +254,9 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                   value: progress,
                   minHeight: 8,
                   backgroundColor: Colors.grey.shade500,
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2F66D0)),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF2F66D0),
+                  ),
                 ),
               ),
             ),
@@ -314,10 +317,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(
-          color: const Color(0xFF5A8DF4), // Light blue border matching the image
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFF5A8DF4), width: 1.5),
       ),
       padding: const EdgeInsets.only(top: 12, left: 12, right: 12, bottom: 16),
       child: Column(
@@ -338,7 +338,9 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
               value: progress,
               minHeight: 8,
               backgroundColor: Colors.grey.shade500,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2F66D0)),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF2F66D0),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -354,16 +356,13 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero, // Squared button from the image
+                    borderRadius: BorderRadius.zero,
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                 ),
                 child: const Text(
                   'View',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),

@@ -79,16 +79,28 @@ class StudentDashboard extends StatelessWidget {
                       Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) =>
-                              const StudentProfileScreen(),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                            return FadeTransition(opacity: animation, child: SlideTransition(
-                              position: Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero).animate(
-                                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-                              ),
-                              child: child,
-                            ));
-                          },
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  const StudentProfileScreen(),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position:
+                                        Tween<Offset>(
+                                          begin: const Offset(1.0, 0.0),
+                                          end: Offset.zero,
+                                        ).animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOutCubic,
+                                          ),
+                                        ),
+                                    child: child,
+                                  ),
+                                );
+                              },
                           transitionDuration: const Duration(milliseconds: 400),
                         ),
                       );
@@ -103,7 +115,6 @@ class StudentDashboard extends StatelessWidget {
                     imagePath: 'Images/Vector.png',
                     label: 'Join Exam Room',
                     onTap: () async {
-                      // Show loading indicator quickly
                       showDialog(
                         context: context,
                         barrierDismissible: false,
@@ -115,21 +126,33 @@ class StudentDashboard extends StatelessWidget {
                       try {
                         final user = FirebaseAuth.instance.currentUser;
                         if (user != null) {
-                          final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-                          
-                          if (context.mounted) Navigator.pop(context); // Close loading dialog
+                          final doc = await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .get();
+
+                          if (context.mounted) Navigator.pop(context);
 
                           final data = doc.data();
-                          final studentNumber = data?['studentNumber']?.toString().trim() ?? '';
-                          final sectionClass = data?['section']?.toString().trim() ?? '';
+                          final studentNumber =
+                              data?['studentNumber']?.toString().trim() ?? '';
+                          final sectionClass =
+                              data?['section']?.toString().trim() ?? '';
 
                           if (studentNumber.isEmpty || sectionClass.isEmpty) {
                             if (context.mounted) {
                               showDialog(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  title: const Text('Incomplete Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  title: const Text(
+                                    'Incomplete Profile',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   content: const Text(
                                     'Please complete your profile (Student ID & Section) before joining an exam!',
                                     style: TextStyle(fontSize: 15),
@@ -137,7 +160,10 @@ class StudentDashboard extends StatelessWidget {
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.pop(ctx),
-                                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                                      child: const Text(
+                                        'Cancel',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
                                     ),
                                     ElevatedButton(
                                       onPressed: () {
@@ -145,54 +171,80 @@ class StudentDashboard extends StatelessWidget {
                                         Navigator.push(
                                           context,
                                           PageRouteBuilder(
-                                            pageBuilder: (context, animation, secondaryAnimation) =>
-                                                const StudentProfileScreen(),
-                                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                              return FadeTransition(opacity: animation, child: child);
-                                            },
+                                            pageBuilder:
+                                                (
+                                                  context,
+                                                  animation,
+                                                  secondaryAnimation,
+                                                ) =>
+                                                    const StudentProfileScreen(),
+                                            transitionsBuilder:
+                                                (
+                                                  context,
+                                                  animation,
+                                                  secondaryAnimation,
+                                                  child,
+                                                ) {
+                                                  return FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  );
+                                                },
                                           ),
                                         );
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF2F66D0),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        backgroundColor: const Color(
+                                          0xFF2F66D0,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
                                       ),
-                                      child: const Text('Complete Profile', style: TextStyle(color: Colors.white)),
+                                      child: const Text(
+                                        'Complete Profile',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
                                     ),
                                   ],
                                 ),
                               );
                             }
-                            return; // Stop navigation, they must complete profile
+                            return;
                           }
                         }
                       } catch (e) {
-                          if (context.mounted) Navigator.pop(context); // close loader on error
+                        if (context.mounted) Navigator.pop(context);
                       }
 
                       if (!context.mounted) return;
                       Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) =>
-                              const JoinExamRoomScreen(),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(1.0, 0.0), // slides in from the right
-                                  end: Offset.zero,
-                                ).animate(
-                                  CurvedAnimation(
-                                    parent: animation,
-                                    curve: Curves.easeOutCubic,
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  const JoinExamRoomScreen(),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position:
+                                        Tween<Offset>(
+                                          begin: const Offset(1.0, 0.0),
+                                          end: Offset.zero,
+                                        ).animate(
+                                          CurvedAnimation(
+                                            parent: animation,
+                                            curve: Curves.easeOutCubic,
+                                          ),
+                                        ),
+                                    child: child,
                                   ),
-                                ),
-                                child: child,
-                              ),
-                            );
-                          },
+                                );
+                              },
                           transitionDuration: const Duration(milliseconds: 400),
                         ),
                       );

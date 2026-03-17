@@ -36,7 +36,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedRole == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a role')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a role')));
         return;
       }
 
@@ -46,21 +48,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       try {
         // Create user with Firebase Auth
-        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim().toLowerCase(),
-          password: _passwordController.text,
-        );
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim().toLowerCase(),
+              password: _passwordController.text,
+            );
 
         // Save extra data to Firestore
-        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim().toLowerCase(),
-          'role': _selectedRole,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+              'name': _nameController.text.trim(),
+              'email': _emailController.text.trim().toLowerCase(),
+              'role': _selectedRole,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
 
         if (!mounted) return;
-        
+
         // Show success
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -68,12 +74,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
               children: [
                 const Icon(Icons.check_circle_outline, color: Colors.white),
                 const SizedBox(width: 12),
-                const Expanded(child: Text('Sign Up Successful!', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))),
+                const Expanded(
+                  child: Text(
+                    'Sign Up Successful!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.green.shade600,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.all(20),
             elevation: 4,
             duration: const Duration(milliseconds: 1500),
@@ -87,16 +104,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  role == 'Test Taker' ? const StudentDashboard() : const ExaminerDashboard(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                    child: child,
-                  ),
-                );
-              },
+                  role == 'Test Taker'
+                  ? const StudentDashboard()
+                  : const ExaminerDashboard(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position:
+                            Tween<Offset>(
+                              begin: const Offset(0.0, 0.05),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            ),
+                        child: child,
+                      ),
+                    );
+                  },
               transitionDuration: const Duration(milliseconds: 500),
             ),
           );
@@ -111,12 +140,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         } else if (e.code == 'email-already-in-use') {
           message = 'The account already exists for that email.';
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red.shade600, behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade600, behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -389,33 +430,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           Navigator.pushReplacement(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                              ) => const LoginScreen(),
-                              transitionsBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0.0, 0.05),
-                                      end: Offset.zero,
-                                    ).animate(
-                                      CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeOutCubic,
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      const LoginScreen(),
+                              transitionsBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                    child,
+                                  ) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position:
+                                            Tween<Offset>(
+                                              begin: const Offset(0.0, 0.05),
+                                              end: Offset.zero,
+                                            ).animate(
+                                              CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeOutCubic,
+                                              ),
+                                            ),
+                                        child: child,
                                       ),
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
+                                    );
+                                  },
                               transitionDuration: const Duration(
                                 milliseconds: 500,
                               ),
@@ -571,12 +612,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               )
                             : const Text(
                                 'Sign Up',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
 

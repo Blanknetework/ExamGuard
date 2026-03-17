@@ -54,7 +54,6 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header matching Examiner Dashboard style
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 16,
@@ -98,7 +97,7 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
             ),
           ),
 
-          // Body Content with Animation
+          // Body Content
           Expanded(
             child: Center(
               child: Padding(
@@ -140,7 +139,6 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                             ),
                           ),
                           const SizedBox(height: 32),
-                          // TextField for Room Code
                           TextField(
                             controller: _codeController,
                             textAlign: TextAlign.center,
@@ -194,49 +192,75 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                                 if (code.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('Please enter a room code.'),
+                                      content: const Text(
+                                        'Please enter a room code.',
+                                      ),
                                       backgroundColor: Colors.red.shade600,
                                       behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
 
-                                // Demo code
+                                // Demo code for testing room
                                 if (code != '123456') {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('Invalid room code. Try "123456".'),
+                                      content: const Text(
+                                        'Invalid room code. Try "123456".',
+                                      ),
                                       backgroundColor: Colors.red.shade600,
                                       behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   );
                                   return;
                                 }
 
-                                // Navigate to waiting screen perfectly
                                 Navigator.push(
                                   context,
                                   PageRouteBuilder(
-                                    pageBuilder: (context, animation, secondaryAnimation) =>
-                                        WaitingApprovalScreen(roomCode: code),
-                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                      return FadeTransition(
-                                        opacity: animation,
-                                        child: ScaleTransition(
-                                          scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-                                            CurvedAnimation(
-                                              parent: animation,
-                                              curve: Curves.easeOutCubic,
-                                            ),
-                                          ),
-                                          child: child,
+                                    pageBuilder:
+                                        (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                        ) => WaitingApprovalScreen(
+                                          roomCode: code,
                                         ),
-                                      );
-                                    },
-                                    transitionDuration: const Duration(milliseconds: 500),
+                                    transitionsBuilder:
+                                        (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                          child,
+                                        ) {
+                                          return FadeTransition(
+                                            opacity: animation,
+                                            child: ScaleTransition(
+                                              scale:
+                                                  Tween<double>(
+                                                    begin: 0.95,
+                                                    end: 1.0,
+                                                  ).animate(
+                                                    CurvedAnimation(
+                                                      parent: animation,
+                                                      curve:
+                                                          Curves.easeOutCubic,
+                                                    ),
+                                                  ),
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                    transitionDuration: const Duration(
+                                      milliseconds: 500,
+                                    ),
                                   ),
                                 );
                               },

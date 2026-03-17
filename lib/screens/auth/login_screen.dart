@@ -31,7 +31,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedRole == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a role')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Please select a role')));
         return;
       }
 
@@ -44,40 +46,48 @@ class _LoginScreenState extends State<LoginScreen> {
         final password = _passwordController.text;
 
         // Sign in with Firebase Auth
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        UserCredential userCredential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(email: email, password: password);
 
         // Fetch User Role
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
         String? resolvedRole;
 
         if (userDoc.exists) {
-            resolvedRole = userDoc.get('role');
+          resolvedRole = userDoc.get('role');
         }
 
         if (resolvedRole != _selectedRole) {
-            await FirebaseAuth.instance.signOut();
-            if (!mounted) return;
-            setState(() { _isLoading = false; });
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: const Row(
-                    children: [
-                        Icon(Icons.error_outline, color: Colors.white),
-                        SizedBox(width: 12),
-                        Text('Role mismatch. That account is not registered as this role.', style: TextStyle(color: Colors.white, fontSize: 13)),
-                    ],
-                    ),
-                    backgroundColor: Colors.red.shade600,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    margin: const EdgeInsets.all(20),
-                    duration: const Duration(seconds: 4),
-                ),
-            );
-            return;
+          await FirebaseAuth.instance.signOut();
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    'Role mismatch. That account is not registered as this role.',
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(20),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          return;
         }
 
         if (!mounted) return;
@@ -92,14 +102,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 Expanded(
                   child: Text(
                     'Welcome! Logged in as $resolvedRole.',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
             ),
             backgroundColor: Colors.green.shade600,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.all(20),
             elevation: 4,
             duration: const Duration(milliseconds: 1500),
@@ -113,16 +129,28 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  role == 'Test Taker' ? const StudentDashboard() : const ExaminerDashboard(),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(0.0, 0.05), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-                    child: child,
-                  ),
-                );
-              },
+                  role == 'Test Taker'
+                  ? const StudentDashboard()
+                  : const ExaminerDashboard(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position:
+                            Tween<Offset>(
+                              begin: const Offset(0.0, 0.05),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            ),
+                        child: child,
+                      ),
+                    );
+                  },
               transitionDuration: const Duration(milliseconds: 500),
             ),
           );
@@ -132,15 +160,29 @@ class _LoginScreenState extends State<LoginScreen> {
           _isLoading = false;
         });
         String message = 'Invalid credentials. Please try again.';
-        if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        if (e.code == 'user-not-found' ||
+            e.code == 'wrong-password' ||
+            e.code == 'invalid-credential') {
           message = 'Account not found or password incorrect.';
         }
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red.shade600, behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red.shade600, behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -318,33 +360,33 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.pushReplacement(
                             context,
                             PageRouteBuilder(
-                              pageBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                              ) => const SignUpScreen(),
-                              transitionsBuilder: (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0.0, 0.05),
-                                      end: Offset.zero,
-                                    ).animate(
-                                      CurvedAnimation(
-                                        parent: animation,
-                                        curve: Curves.easeOutCubic,
+                              pageBuilder:
+                                  (context, animation, secondaryAnimation) =>
+                                      const SignUpScreen(),
+                              transitionsBuilder:
+                                  (
+                                    context,
+                                    animation,
+                                    secondaryAnimation,
+                                    child,
+                                  ) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: SlideTransition(
+                                        position:
+                                            Tween<Offset>(
+                                              begin: const Offset(0.0, 0.05),
+                                              end: Offset.zero,
+                                            ).animate(
+                                              CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeOutCubic,
+                                              ),
+                                            ),
+                                        child: child,
                                       ),
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
+                                    );
+                                  },
                               transitionDuration: const Duration(
                                 milliseconds: 500,
                               ),
@@ -390,17 +432,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               curve: Curves.easeInOut,
                               opacity:
                                   _selectedRole == null ||
-                                          _selectedRole == 'Test Taker'
-                                      ? 1.0
-                                      : 0.5,
+                                      _selectedRole == 'Test Taker'
+                                  ? 1.0
+                                  : 0.5,
                               child: AnimatedScale(
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeOutBack,
                                 scale:
                                     _selectedRole == null ||
-                                            _selectedRole == 'Test Taker'
-                                        ? 1.0
-                                        : 0.85,
+                                        _selectedRole == 'Test Taker'
+                                    ? 1.0
+                                    : 0.85,
                                 child: Column(
                                   children: [
                                     Image.asset(
@@ -437,17 +479,17 @@ class _LoginScreenState extends State<LoginScreen> {
                               curve: Curves.easeInOut,
                               opacity:
                                   _selectedRole == null ||
-                                          _selectedRole == 'Examiner'
-                                      ? 1.0
-                                      : 0.5,
+                                      _selectedRole == 'Examiner'
+                                  ? 1.0
+                                  : 0.5,
                               child: AnimatedScale(
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeOutBack,
                                 scale:
                                     _selectedRole == null ||
-                                            _selectedRole == 'Examiner'
-                                        ? 1.0
-                                        : 0.85,
+                                        _selectedRole == 'Examiner'
+                                    ? 1.0
+                                    : 0.85,
                                 child: Column(
                                   children: [
                                     Image.asset(
@@ -500,12 +542,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               )
                             : const Text(
                                 'Log In',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
 

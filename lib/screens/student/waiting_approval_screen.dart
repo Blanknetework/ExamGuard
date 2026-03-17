@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 
 class WaitingApprovalScreen extends StatefulWidget {
   final String roomCode;
-  
+
   const WaitingApprovalScreen({super.key, required this.roomCode});
 
   @override
@@ -31,13 +31,13 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen>
       ),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
-        .animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animController,
+            curve: const Interval(0.2, 1.0, curve: Curves.easeOutBack),
+          ),
+        );
 
     _animController.forward();
   }
@@ -70,7 +70,7 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen>
               ),
             ),
           ),
-          
+
           // Header / Back Button
           SafeArea(
             child: Padding(
@@ -78,7 +78,10 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen>
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -97,89 +100,89 @@ class _WaitingApprovalScreenState extends State<WaitingApprovalScreen>
                     position: _slideAnimation,
                     child: Container(
                       width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 40,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Colors.grey.shade200,
-                        width: 1.5,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 40,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.grey.shade200,
+                          width: 1.5,
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Spinning loader
-                        const CupertinoActivityIndicator(
-                          radius: 20,
-                          color: Color(0xFF2F66D0),
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Main text
-                        const Text(
-                          'Waiting for Examiner Approval',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            height: 1.3,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Room Name
-                        Text(
-                          '[Room Name: ${widget.roomCode}]',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.w500,
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Spinning loader
+                          const CupertinoActivityIndicator(
+                            radius: 20,
+                            color: Color(0xFF2F66D0),
                           ),
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Subtext
-                        const Text(
-                          'Please Wait for the Examiner\nApprove your request',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: Colors.black54,
-                            height: 1.4,
+                          const SizedBox(height: 32),
+
+                          // Main text
+                          const Text(
+                            'Waiting for Examiner Approval',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              height: 1.3,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
-                        
-                        // Progress bar snippet
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: const SizedBox(
-                            height: 6,
-                            child: LinearProgressIndicator(
-                              backgroundColor: Color(0xFFE0E0E0),
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Color(0xFF2F66D0),
+                          const SizedBox(height: 16),
+
+                          // Room Name
+                          Text(
+                            '[Room Name: ${widget.roomCode}]',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Subtext
+                          const Text(
+                            'Please Wait for the Examiner\nApprove your request',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.black54,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Progress bar snippet
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: const SizedBox(
+                              height: 6,
+                              child: LinearProgressIndicator(
+                                backgroundColor: Color(0xFFE0E0E0),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF2F66D0),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
               ),
             ),
           ),

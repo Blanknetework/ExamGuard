@@ -14,10 +14,9 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
-  // Button press animation state
+
   bool _isButtonPressed = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -31,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Scale animation for the logo (bouncy pop-in)
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _animationController, 
+        parent: _animationController,
         curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
       ),
     );
@@ -45,15 +44,13 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     // Slide up animation for text and button (overshoot slide)
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.0, 0.5),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: const Interval(0.4, 1.0, curve: Curves.easeOutBack),
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0.0, 0.5), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: const Interval(0.4, 1.0, curve: Curves.easeOutBack),
+          ),
+        );
 
     // Start animation
     _animationController.forward();
@@ -68,12 +65,11 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2F66D0), // Match the header color
+      backgroundColor: const Color(0xFF2F66D0),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated Logo
             ScaleTransition(
               scale: _scaleAnimation,
               child: FadeTransition(
@@ -100,7 +96,6 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
             const SizedBox(height: 32),
-            // Animated Text
             SlideTransition(
               position: _slideAnimation,
               child: FadeTransition(
@@ -154,10 +149,9 @@ class _SplashScreenState extends State<SplashScreen>
                               alpha: _isButtonPressed ? 0.1 : 0.3,
                             ),
                             blurRadius: _isButtonPressed ? 4 : 8,
-                            offset:
-                                _isButtonPressed
-                                    ? const Offset(0, 2)
-                                    : const Offset(0, 4),
+                            offset: _isButtonPressed
+                                ? const Offset(0, 2)
+                                : const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -166,50 +160,63 @@ class _SplashScreenState extends State<SplashScreen>
                         child: InkWell(
                           borderRadius: BorderRadius.circular(28),
                           onTap: () {
-                            // Trigger animation gracefully before navigating
                             setState(() => _isButtonPressed = true);
 
-                            Future.delayed(const Duration(milliseconds: 150), () {
-                              if (!context.mounted) return;
-                              Navigator.of(context).pushReplacement(
-                                PageRouteBuilder(
-                                  pageBuilder:
-                                      (context, animation, secondaryAnimation) =>
-                                          const LoginScreen(),
-                                  transitionsBuilder: (
-                                    context,
-                                    animation,
-                                    secondaryAnimation,
-                                    child,
-                                  ) {
-                                    // Smooth fade + slight scale up transition
-                                    return FadeTransition(
-                                      opacity: animation.drive(
-                                        CurveTween(curve: Curves.easeInOut),
-                                      ),
-                                      child: ScaleTransition(
-                                        scale: Tween<double>(begin: 0.95, end: 1.0)
-                                            .animate(
-                                              CurvedAnimation(
-                                                parent: animation,
-                                                curve: Curves.easeOutCubic,
+                            Future.delayed(
+                              const Duration(milliseconds: 150),
+                              () {
+                                if (!context.mounted) return;
+                                Navigator.of(context).pushReplacement(
+                                  PageRouteBuilder(
+                                    pageBuilder:
+                                        (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                        ) => const LoginScreen(),
+                                    transitionsBuilder:
+                                        (
+                                          context,
+                                          animation,
+                                          secondaryAnimation,
+                                          child,
+                                        ) {
+                                          return FadeTransition(
+                                            opacity: animation.drive(
+                                              CurveTween(
+                                                curve: Curves.easeInOut,
                                               ),
                                             ),
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  transitionDuration: const Duration(
-                                    milliseconds: 800,
+                                            child: ScaleTransition(
+                                              scale:
+                                                  Tween<double>(
+                                                    begin: 0.95,
+                                                    end: 1.0,
+                                                  ).animate(
+                                                    CurvedAnimation(
+                                                      parent: animation,
+                                                      curve:
+                                                          Curves.easeOutCubic,
+                                                    ),
+                                                  ),
+                                              child: child,
+                                            ),
+                                          );
+                                        },
+                                    transitionDuration: const Duration(
+                                      milliseconds: 800,
+                                    ),
                                   ),
-                                ),
-                              );
-                            });
+                                );
+                              },
+                            );
                           },
-                          onTapDown: (_) => setState(() => _isButtonPressed = true),
-                          onTapUp: (_) => setState(() => _isButtonPressed = false),
-                          onTapCancel:
-                              () => setState(() => _isButtonPressed = false),
+                          onTapDown: (_) =>
+                              setState(() => _isButtonPressed = true),
+                          onTapUp: (_) =>
+                              setState(() => _isButtonPressed = false),
+                          onTapCancel: () =>
+                              setState(() => _isButtonPressed = false),
                           child: const Center(
                             child: Text(
                               'Get Started',
