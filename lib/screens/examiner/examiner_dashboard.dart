@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:examapp/screens/examiner/upload_exam_document_screen.dart';
+import 'package:examapp/screens/examiner/import_google_form_screen.dart';
 
 class ExaminerDashboard extends StatefulWidget {
   const ExaminerDashboard({super.key});
@@ -110,7 +112,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
         width: 72,
         height: 72,
         child: FloatingActionButton(
-          onPressed: () {},
+          onPressed: _showCreateExamOptions,
           backgroundColor: const Color(0xFF2F66D0),
           shape: const CircleBorder(),
           elevation: 2,
@@ -158,6 +160,132 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
     );
   }
 
+  void _showCreateExamOptions() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SingleChildScrollView(
+          child: Container(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Create New Exam',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 24),
+                _buildCreateOption(
+                  icon: Icons.auto_awesome,
+                  title: 'Upload Document (AI Parse)',
+                  subtitle:
+                      'Upload a PDF or TXT to automatically extract questions.',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UploadExamDocumentScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildCreateOption(
+                  icon: Icons.link,
+                  title: 'Import Google Form',
+                  subtitle:
+                      'Paste a Google Form link to securely link questions.',
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ImportGoogleFormScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildCreateOption(
+                  icon: Icons.edit_document,
+                  title: 'Manual Entry',
+                  subtitle: 'Build your exam questions one by one manually.',
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Navigate to manual builder
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCreateOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2F66D0).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF2F66D0), size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDynamicContent() {
     if (_currentSection == 'manage_exams') {
       return Column(
@@ -191,9 +319,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {
-                // Create new exam action
-              },
+              onPressed: _showCreateExamOptions,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2F66D0),
                 foregroundColor: Colors.white,

@@ -38,6 +38,10 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   flutter_dotenv: ^6.0.0
+  file_picker: ^10.3.10
+  google_generative_ai: ^0.4.7
+  syncfusion_flutter_pdf: ^33.1.44
+  docx_to_text: ^1.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
