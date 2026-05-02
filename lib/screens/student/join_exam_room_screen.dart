@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:examapp/screens/student/waiting_approval_screen.dart';
 
 class JoinExamRoomScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   final TextEditingController _codeController = TextEditingController();
+  String _examMode = 'googleForm'; // Add exam mode state
 
   @override
   void initState() {
@@ -88,11 +91,7 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                     ),
                   ),
                 ),
-                const Icon(
-                  Icons.settings_outlined,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                const SizedBox(width: 48), // Balance the back button space
               ],
             ),
           ),
@@ -100,9 +99,16 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
           // Body Content
           Expanded(
             child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: FadeTransition(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await Future.delayed(const Duration(milliseconds: 1000));
+                  if (mounted) setState(() {});
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
                     position: _slideAnimation,
@@ -181,13 +187,94 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                               ),
                             ),
                           ),
+                          const SizedBox(height: 24),
+                          // Mode Selection
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Exam Detail Mode',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _examMode = 'googleForm';
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _examMode == 'googleForm' ? const Color(0xFF2F66D0).withValues(alpha: 0.1) : Colors.white,
+                                      border: Border.all(
+                                        color: _examMode == 'googleForm' ? const Color(0xFF2F66D0) : Colors.grey.shade300,
+                                        width: _examMode == 'googleForm' ? 2 : 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Google Form\n(List View)',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: _examMode == 'googleForm' ? FontWeight.bold : FontWeight.normal,
+                                          color: _examMode == 'googleForm' ? const Color(0xFF2F66D0) : Colors.black87,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _examMode = 'wayground';
+                                    });
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: _examMode == 'wayground' ? const Color(0xFF2F66D0).withValues(alpha: 0.1) : Colors.white,
+                                      border: Border.all(
+                                        color: _examMode == 'wayground' ? const Color(0xFF2F66D0) : Colors.grey.shade300,
+                                        width: _examMode == 'wayground' ? 2 : 1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Wayground\n(Page View)',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: _examMode == 'wayground' ? FontWeight.bold : FontWeight.normal,
+                                          color: _examMode == 'wayground' ? const Color(0xFF2F66D0) : Colors.black87,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 32),
                           // Join Room Button
                           SizedBox(
                             width: 160,
                             height: 50,
                             child: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 final code = _codeController.text.trim();
                                 if (code.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -205,12 +292,17 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                                   return;
                                 }
 
-                                // Demo code for testing room
-                                if (code != '123456') {
+                                final roomDoc = await FirebaseFirestore.instance
+                                    .collection('rooms')
+                                    .doc(code)
+                                    .get();
+                                if (!context.mounted) return;
+
+                                if (!roomDoc.exists) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: const Text(
-                                        'Invalid room code. Try "123456".',
+                                        'Room not found! Check your code.',
                                       ),
                                       backgroundColor: Colors.red.shade600,
                                       behavior: SnackBarBehavior.floating,
@@ -222,6 +314,31 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                                   return;
                                 }
 
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user != null) {
+                                  final userDoc = await FirebaseFirestore
+                                      .instance
+                                      .collection('users')
+                                      .doc(user.uid)
+                                      .get();
+                                  final name =
+                                      userDoc.data()?['name'] ??
+                                      'Unknown Student';
+                                  await FirebaseFirestore.instance
+                                      .collection('rooms')
+                                      .doc(code)
+                                      .collection('participants')
+                                      .doc(user.uid)
+                                      .set({
+                                        'name': name,
+                                        'uid': user.uid,
+                                        'status': 'waiting',
+                                        'joinedAt':
+                                            FieldValue.serverTimestamp(),
+                                      });
+                                }
+
+                                if (!context.mounted) return;
                                 Navigator.push(
                                   context,
                                   PageRouteBuilder(
@@ -232,6 +349,7 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                                           secondaryAnimation,
                                         ) => WaitingApprovalScreen(
                                           roomCode: code,
+                                          examMode: _examMode,
                                         ),
                                     transitionsBuilder:
                                         (
@@ -285,6 +403,8 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                       ),
                     ),
                   ),
+                ),
+                ),
                 ),
               ),
             ),

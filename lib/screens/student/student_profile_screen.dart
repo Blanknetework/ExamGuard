@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:examapp/screens/auth/login_screen.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -14,6 +15,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   String studentNumber = "Not set";
   String sectionClass = "Not set";
   bool isLoading = true;
+  List<Map<String, dynamic>> examHistory = [];
 
   @override
   void initState() {
@@ -28,7 +30,17 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           .collection('users')
           .doc(user.uid)
           .get();
-      if (docSnapshot.exists) {
+
+      final historySnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('examHistory')
+          .orderBy('submittedAt', descending: true)
+          .get();
+
+      final history = historySnap.docs.map((doc) => doc.data()).toList();
+
+      if (mounted && docSnapshot.exists) {
         final data = docSnapshot.data() as Map<String, dynamic>;
         setState(() {
           userName = data['name'] ?? 'Unknown User';
@@ -36,6 +48,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           if (studentNumber.isEmpty) studentNumber = 'Not set';
           sectionClass = data['section'] ?? 'Not set';
           if (sectionClass.isEmpty) sectionClass = 'Not set';
+          examHistory = history;
+          isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
           isLoading = false;
         });
       }
@@ -167,7 +184,58 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: _showEditProfileDialog,
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      title: const Text(
+                        'Log Out',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      content: const Text(
+                        'Are you sure you want to log out?',
+                        style: TextStyle(fontSize: 15),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Log Out',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  }
+                },
               ),
             ],
           ),
@@ -178,94 +246,116 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               child: CircularProgressIndicator(color: Color(0xFF2F66D0)),
             )
           : SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Info Card
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2567E8),
-                            borderRadius: BorderRadius.circular(20),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await _loadUserProfile();
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Info Card
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2567E8),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(
+                              Icons.person_outline,
+                              size: 50,
+                              color: Colors.white,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.person_outline,
-                            size: 50,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                userName,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Student Number\n$studentNumber',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade700,
-                                  height: 1.4,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                sectionClass,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade700,
-                                  height: 1.4,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              GestureDetector(
-                                onTap: _showEditProfileDialog,
-                                child: const Text(
-                                  'Edit Profile',
-                                  style: TextStyle(
-                                    color: Color(0xFF2F66D0),
-                                    fontWeight: FontWeight.w600,
-                                    decoration: TextDecoration.underline,
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userName,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Student Number\n$studentNumber',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade700,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  sectionClass,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade700,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap: _showEditProfileDialog,
+                                  child: const Text(
+                                    'Edit Profile',
+                                    style: TextStyle(
+                                      color: Color(0xFF2F66D0),
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    const Text(
-                      'Exam History',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Simulated Exam History List
-                    _buildExamHistoryCard('Calculus For Class C', '47/50'),
-                    const SizedBox(height: 12),
-                    _buildExamHistoryCard('History For Class C', '34/50'),
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 40),
+                      const Text(
+                        'Exam History',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (examHistory.isEmpty)
+                        Center(
+                          child: Text(
+                            'No exams taken yet.',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        )
+                      else
+                        ...examHistory.map((exam) {
+                          final title =
+                              exam['examTitle']?.toString() ?? 'Unknown Exam';
+                          final score = exam['score']?.toString() ?? 'N/A';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildExamHistoryCard(title, score),
+                          );
+                        }),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,12 +1,12 @@
-import 'dart:io';
+import 'dart:io' as io;
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:docx_to_text/docx_to_text.dart';
-import 'package:http/http.dart' as http;
 import 'package:examapp/screens/examiner/review_questions_screen.dart';
 
 class UploadExamDocumentScreen extends StatefulWidget {
@@ -18,12 +18,205 @@ class UploadExamDocumentScreen extends StatefulWidget {
 }
 
 class _UploadExamDocumentScreenState extends State<UploadExamDocumentScreen> {
+  static const String _debugGeminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY_DEBUG',
+  );
   final TextEditingController _questionCountController = TextEditingController(
     text: '50',
   );
   List<Map<String, dynamic>> _extractedQuestions = [];
   bool _isUploading = false;
   bool _isSuccess = false;
+
+  String _suggestExamTitleFromFileName(String fileName) {
+    final normalized = fileName.replaceAll('\\', '/');
+    final nameOnly = normalized.split('/').last;
+    final dotIndex = nameOnly.lastIndexOf('.');
+    final baseName = dotIndex > 0 ? nameOnly.substring(0, dotIndex) : nameOnly;
+    final cleaned = baseName.replaceAll(RegExp(r'[_-]+'), ' ').trim();
+    return cleaned.isNotEmpty ? cleaned : 'AI Generated Exam';
+  }
+
+  bool _isQuotaLikeError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('429') ||
+        text.contains('503') ||
+        text.contains('500') ||
+        text.contains('502') ||
+        text.contains('504') ||
+        text.contains('resource_exhausted') ||
+        text.contains('quota');
+  }
+
+  int _requestedQuestionCount() {
+    final raw = _questionCountController.text.trim();
+    final parsed = int.tryParse(raw);
+    if (parsed == null || parsed <= 0) return 10;
+    if (parsed > 100) return 100;
+    return parsed;
+  }
+
+  List<Map<String, dynamic>> _buildOfflineQuestionsFromText(String text) {
+    final targetCount = _requestedQuestionCount();
+    final normalized = text.replaceAll('\r', '\n');
+    final lines = normalized
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.length > 12)
+        .toList();
+
+    final candidates = <String>[];
+    for (final line in lines) {
+      if (line.contains('?')) {
+        candidates.add(line);
+      }
+      if (candidates.length >= targetCount) break;
+    }
+
+    if (candidates.isEmpty) {
+      final sentencePieces = normalized
+          .split(RegExp(r'(?<=[.!?])\s+'))
+          .map((e) => e.trim())
+          .where((e) => e.length > 20)
+          .toList();
+      for (final s in sentencePieces) {
+        if (candidates.length >= targetCount) break;
+        candidates.add(s.endsWith('?') ? s : '$s?');
+      }
+    }
+
+    final limited = candidates.take(targetCount).toList();
+    if (limited.isEmpty) {
+      return [
+        {
+          'question': 'What is the sum of 2 + 2?',
+          'options': ['3', '4', '5', '6'],
+          'correct_answer': '4',
+        },
+        {
+          'question': 'Which planet is known as the Red Planet?',
+          'options': ['Earth', 'Mars', 'Jupiter', 'Saturn'],
+          'correct_answer': 'Mars',
+        },
+      ];
+    }
+
+    return limited.map((q) {
+      return {
+        'question': q,
+        'options': const ['Option A', 'Option B', 'Option C', 'Option D'],
+        'correct_answer': 'Option A',
+      };
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _parseQuestionsFromAiResponse(String rawText) {
+    var cleaned = rawText.trim();
+    cleaned = cleaned.replaceAll('```json', '').replaceAll('```', '').trim();
+    cleaned = cleaned.replaceAll('\u201c', '"').replaceAll('\u201d', '"');
+    cleaned = cleaned.replaceAll('\u2018', "'").replaceAll('\u2019', "'");
+
+    final start = cleaned.indexOf('[');
+    if (start == -1) {
+      throw const FormatException('No JSON array start found.');
+    }
+
+    final end = cleaned.lastIndexOf(']');
+    if (end == -1 || end <= start) {
+      throw const FormatException('No JSON array end found.');
+    }
+
+    cleaned = cleaned.substring(start, end + 1);
+    cleaned = cleaned.replaceAll(RegExp(r',\s*([\]}])'), r'$1');
+
+    final decoded = jsonDecode(cleaned);
+    if (decoded is! List) {
+      throw const FormatException('Root JSON value is not a list.');
+    }
+
+    final normalized = <Map<String, dynamic>>[];
+    for (final item in decoded) {
+      if (item is! Map) continue;
+      final map = Map<String, dynamic>.from(item);
+      final question = (map['question'] ?? '').toString().trim();
+      final optionsRaw = map['options'];
+      final options = optionsRaw is List
+          ? optionsRaw
+                .map((e) => e.toString().trim())
+                .where((e) => e.isNotEmpty)
+                .toList()
+          : <String>[];
+      var correct = (map['correct_answer'] ?? '').toString().trim();
+
+      if (question.isEmpty || options.isEmpty) continue;
+      if (correct.isEmpty || !options.contains(correct)) {
+        correct = options.first;
+      }
+
+      normalized.add({
+        'question': question,
+        'options': options,
+        'correct_answer': correct,
+      });
+    }
+
+    return normalized;
+  }
+
+  Future<String> _extractTextFromFile(PlatformFile file) async {
+    final extension = file.extension?.toLowerCase() ?? '';
+    Uint8List fileBytes;
+
+    if (kIsWeb) {
+      if (file.bytes == null) throw Exception('File bytes are null on web.');
+      fileBytes = file.bytes!;
+    } else {
+      if (file.path == null) {
+        throw Exception('File path is null on mobile/desktop.');
+      }
+      fileBytes = await io.File(file.path!).readAsBytes();
+    }
+
+    if (extension == 'pdf') {
+      final document = PdfDocument(inputBytes: fileBytes);
+      final extractor = PdfTextExtractor(document);
+      final text = extractor.extractText();
+      document.dispose();
+      return text;
+    }
+    if (extension == 'docx') {
+      return docxToText(fileBytes);
+    }
+    return utf8.decode(fileBytes);
+  }
+
+  String _friendlyErrorMessage(Object error) {
+    final text = error.toString().toLowerCase();
+    if (text.contains('503') ||
+        text.contains('500') ||
+        text.contains('502') ||
+        text.contains('504') ||
+        text.contains('temporarily unavailable')) {
+      return 'Gemini is temporarily unavailable. Generated questions in offline mode instead.';
+    }
+    if (text.contains('gemini') &&
+        (text.contains('429') ||
+            text.contains('resource_exhausted') ||
+            text.contains('quota'))) {
+      return 'Gemini quota/rate limit reached. Try again later or check billing.';
+    }
+    if (text.contains('formatexception') || text.contains('json')) {
+      return 'AI returned invalid JSON format. Please try uploading again.';
+    }
+    if (text.contains('google api error: 401')) {
+      return 'Invalid Gemini API key. Check GEMINI_API_KEY in your .env file.';
+    }
+    if (text.contains('google api error: 403') ||
+        text.contains('permission_denied')) {
+      return 'Gemini API access denied. Check your project and key permissions.';
+    }
+    return 'AI request failed. Generated questions in offline mode instead.';
+  }
 
   @override
   void dispose() {
@@ -34,11 +227,15 @@ class _UploadExamDocumentScreenState extends State<UploadExamDocumentScreen> {
   void _pickFileAndUpload() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.any,
+      withData: kIsWeb,
     );
 
-    if (result == null || result.files.single.path == null) return;
+    if (result == null || result.files.isEmpty) return;
 
-    final extension = result.files.single.extension?.toLowerCase() ?? '';
+    final file = result.files.single;
+    if (file.path == null && file.bytes == null) return;
+
+    final extension = file.extension?.toLowerCase() ?? '';
     if (extension != 'pdf' && extension != 'txt' && extension != 'docx') {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,48 +253,33 @@ class _UploadExamDocumentScreenState extends State<UploadExamDocumentScreen> {
       _extractedQuestions = [];
     });
 
+    final examTitle = _suggestExamTitleFromFileName(file.name);
+
     try {
-      final filePath = result.files.single.path!;
-      final extension = result.files.single.extension?.toLowerCase() ?? '';
-      final fileBytes = await File(filePath).readAsBytes();
+      bool usedOfflineFallback = false;
+      String? fallbackNotice;
+      final extractedText = await _extractTextFromFile(file);
 
-      String extractedText = '';
-      if (extension == 'pdf') {
-        final PdfDocument document = PdfDocument(inputBytes: fileBytes);
-        final PdfTextExtractor extractor = PdfTextExtractor(document);
-        extractedText = extractor.extractText();
-        document.dispose();
-      } else if (extension == 'docx') {
-        extractedText = docxToText(fileBytes);
+      final envGeminiKey = dotenv.env['GEMINI_API_KEY']?.trim();
+      final apiKey = (envGeminiKey != null && envGeminiKey.isNotEmpty)
+          ? envGeminiKey
+          : (_debugGeminiApiKey.isNotEmpty ? _debugGeminiApiKey : null);
+      final geminiModel = dotenv.env['GEMINI_MODEL']?.trim().isNotEmpty == true
+          ? dotenv.env['GEMINI_MODEL']!.trim()
+          : 'gemini-2.0-flash';
+
+      final isMissingKey =
+          apiKey == null || apiKey.isEmpty || apiKey == 'YOUR_GEMINI_KEY';
+      if (isMissingKey) {
+        _extractedQuestions = _buildOfflineQuestionsFromText(extractedText);
+        usedOfflineFallback = true;
+        fallbackNotice =
+            'Gemini API key missing. Generated questions in offline mode.';
       } else {
-        extractedText = await File(filePath).readAsString();
-      }
-
-      final apiKey = dotenv.env['GEMINI_API_KEY']?.trim();
-
-      if (apiKey == null || apiKey.isEmpty || apiKey == 'YOUR_GEMINI_KEY') {
-        // Mock response if no valid API key is present so tests don't break
-        await Future.delayed(const Duration(seconds: 3));
-        _extractedQuestions = [
-          {
-            'question': 'What is the sum of 2 + 2?',
-            'options': ['3', '4', '5', '6'],
-            'correct_answer': '4',
-          },
-          {
-            'question': 'Which planet is known as the Red Planet?',
-            'options': ['Earth', 'Mars', 'Jupiter', 'Saturn'],
-            'correct_answer': 'Mars',
-          },
-        ];
-      } else {
-        // Raw HTTP Gemini Free Tier Request
-        final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
-        );
-
-        final prompt =
-            '''
+        try {
+          // Gemini request via flutter_gemini package
+          final prompt =
+              '''
 You are an expert exam generation AI. Read the following text and extract exactly ${_questionCountController.text.trim().isEmpty ? "all" : _questionCountController.text.trim()} multiple-choice questions from it.
 If the text is messy, cleanly format each question.
 You MUST respond with pure JSON array format ONLY. Do not include markdown formatting or backticks.
@@ -119,51 +301,32 @@ Text to parse:
 $extractedText
 ''';
 
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            "contents": [
-              {
-                "parts": [
-                  {"text": prompt},
-                ],
-              },
-            ],
-            "generationConfig": {"temperature": 0.2},
-          }),
-        );
+          Gemini.init(apiKey: apiKey);
+          final gemini = Gemini.instance;
+          final response = await gemini.prompt(
+            parts: [Part.text(prompt)],
+            model: geminiModel,
+            generationConfig: GenerationConfig(temperature: 0.2),
+          );
 
-        if (response.statusCode != 200) {
-          throw Exception('Google API Error: ${response.statusCode}');
-        }
+          final rawText = (response?.output ?? '').trim();
+          if (rawText.isEmpty) {
+            throw Exception('Gemini API Error: Empty response text.');
+          }
+          _extractedQuestions = _parseQuestionsFromAiResponse(rawText);
 
-        final data = jsonDecode(response.body);
-        if (data['candidates'] == null || data['candidates'].isEmpty) {
-          throw Exception('Google API Error: No candidates returned.');
-        }
-
-        String rawText =
-            data['candidates'][0]['content']['parts'][0]['text'] ?? '[]';
-
-        String cleanJson = rawText;
-        cleanJson = cleanJson.replaceAll('```json', '').replaceAll('```', '');
-
-        final startIndex = cleanJson.indexOf('[');
-        final endIndex = cleanJson.lastIndexOf(']');
-        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-          cleanJson = cleanJson.substring(startIndex, endIndex + 1);
-        } else {
-          cleanJson = '[]';
-        }
-
-        final parsed = jsonDecode(cleanJson) as List<dynamic>;
-        _extractedQuestions = parsed
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-
-        if (_extractedQuestions.isEmpty) {
-          throw Exception('AI returned an empty format.');
+          if (_extractedQuestions.isEmpty) {
+            throw Exception('AI returned an empty format.');
+          }
+        } catch (e) {
+          if (_isQuotaLikeError(e)) {
+            _extractedQuestions = _buildOfflineQuestionsFromText(extractedText);
+            usedOfflineFallback = true;
+            fallbackNotice =
+                'Gemini unavailable/quota reached. Generated questions in offline mode.';
+          } else {
+            rethrow;
+          }
         }
       }
 
@@ -181,7 +344,7 @@ $extractedText
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'AI successfully extracted ${_extractedQuestions.length} questions!',
+                    '${usedOfflineFallback ? 'Offline mode generated ' : 'AI successfully extracted '}${_extractedQuestions.length} questions!',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -191,7 +354,9 @@ $extractedText
                 ),
               ],
             ),
-            backgroundColor: Colors.green.shade600,
+            backgroundColor: usedOfflineFallback
+                ? Colors.orange.shade700
+                : Colors.green.shade600,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -201,43 +366,61 @@ $extractedText
           ),
         );
 
+        if (usedOfflineFallback && fallbackNotice != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(fallbackNotice),
+              backgroundColor: Colors.orange.shade700,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+
         // Navigate to the ReviewQuestionsScreen
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ReviewQuestionsScreen(extractedQuestions: _extractedQuestions),
+            builder: (context) => ReviewQuestionsScreen(
+              extractedQuestions: _extractedQuestions,
+              initialExamTitle: examTitle,
+            ),
           ),
         );
       }
     } catch (e) {
+      debugPrint('AI upload error: $e');
       if (mounted) {
-        setState(() {
-          _isUploading = false;
-          _isSuccess = true;
-          _extractedQuestions = [
+        final errorMessage = _friendlyErrorMessage(e);
+        List<Map<String, dynamic>> offlineQuestions;
+        try {
+          final extractedText = await _extractTextFromFile(file);
+          offlineQuestions = _buildOfflineQuestionsFromText(extractedText);
+        } catch (_) {
+          offlineQuestions = [
             {
               'question': 'What is the sum of 2 + 2?',
               'options': ['3', '4', '5', '6'],
               'correct_answer': '4',
             },
-            {
-              'question': 'Which planet is known as the Red Planet?',
-              'options': ['Earth', 'Mars', 'Jupiter', 'Saturn'],
-              'correct_answer': 'Mars',
-            },
           ];
+        }
+        
+        if (!context.mounted) return;
+
+        setState(() {
+          _isUploading = false;
+          _isSuccess = true;
+          _extractedQuestions = offlineQuestions;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Google API Blocked: Testing with Mock Data'),
+            content: Text(errorMessage),
             backgroundColor: Colors.orange.shade700,
-            behavior: SnackBarBehavior.floating,
+            behavior: SnackBarBehavior.fixed,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            margin: const EdgeInsets.all(20),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -245,8 +428,10 @@ $extractedText
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                ReviewQuestionsScreen(extractedQuestions: _extractedQuestions),
+            builder: (context) => ReviewQuestionsScreen(
+              extractedQuestions: _extractedQuestions,
+              initialExamTitle: examTitle,
+            ),
           ),
         );
       }
@@ -332,6 +517,8 @@ $extractedText
                   ],
                 ),
               ),
+
+              // Removed provider label to hide AI usage details
 
               const SizedBox(height: 24),
 

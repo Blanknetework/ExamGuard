@@ -2,7 +2,7 @@ name: examapp
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -39,9 +39,13 @@ dependencies:
   cloud_firestore: ^5.4.4
   flutter_dotenv: ^6.0.0
   file_picker: ^10.3.10
-  google_generative_ai: ^0.4.7
+  google_sign_in: ^6.3.0
+  flutter_gemini: ^3.0.0
   syncfusion_flutter_pdf: ^33.1.44
   docx_to_text: ^1.0.1
+  shared_preferences: ^2.5.4
+  email_otp: ^3.1.0
+  http: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -52,13 +56,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -71,6 +75,7 @@ flutter:
     - Images/tk.png
     - Images/student.png
     - Images/Vector.png
+    - "Images/google-logo.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -97,3 +102,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "Images/app_icon.png"

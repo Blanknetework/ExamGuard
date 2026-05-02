@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:examapp/screens/student/student_profile_screen.dart';
 import 'package:examapp/screens/student/join_exam_room_screen.dart';
-
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key});
 
@@ -11,8 +10,19 @@ class StudentDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await Future.delayed(const Duration(milliseconds: 1000));
+        },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
           Container(
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 20,
@@ -52,11 +62,6 @@ class StudentDashboard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                const Icon(
-                  Icons.settings_outlined,
-                  color: Colors.white,
-                  size: 28,
                 ),
               ],
             ),
@@ -256,7 +261,13 @@ class StudentDashboard extends StatelessWidget {
               ),
             ),
           ),
-        ],
+            ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
