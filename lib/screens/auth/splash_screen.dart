@@ -74,24 +74,12 @@ class _SplashScreenState extends State<SplashScreen>
               scale: _scaleAnimation,
               child: FadeTransition(
                 opacity: _animationController,
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.shield_outlined,
-                    size: 80,
-                    color: Color(0xFF2F66D0),
-                  ),
+                child: Image.asset(
+                  'Images/app_icon.png',
+                  width: 150,
+                  height: 150,
+                  fit: BoxFit.contain,
+                  color: Colors.white,
                 ),
               ),
             ),

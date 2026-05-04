@@ -7,6 +7,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:docx_to_text/docx_to_text.dart';
+import 'package:archive/archive.dart';
 import 'package:examapp/screens/examiner/review_questions_screen.dart';
 
 class UploadExamDocumentScreen extends StatefulWidget {
@@ -187,6 +188,24 @@ class _UploadExamDocumentScreenState extends State<UploadExamDocumentScreen> {
     if (extension == 'docx') {
       return docxToText(fileBytes);
     }
+    if (extension == 'pptx') {
+      try {
+        final archive = ZipDecoder().decodeBytes(fileBytes);
+        final textParts = <String>[];
+        for (final file in archive) {
+          if (file.isFile && file.name.startsWith('ppt/slides/slide') && file.name.endsWith('.xml')) {
+            final content = utf8.decode(file.content as List<int>);
+            final matches = RegExp(r'<a:t>(.*?)</a:t>').allMatches(content);
+            for (final match in matches) {
+              textParts.add(match.group(1) ?? '');
+            }
+          }
+        }
+        return textParts.join('\n');
+      } catch (e) {
+        return '';
+      }
+    }
     return utf8.decode(fileBytes);
   }
 
@@ -236,11 +255,11 @@ class _UploadExamDocumentScreenState extends State<UploadExamDocumentScreen> {
     if (file.path == null && file.bytes == null) return;
 
     final extension = file.extension?.toLowerCase() ?? '';
-    if (extension != 'pdf' && extension != 'txt' && extension != 'docx') {
+    if (extension != 'pdf' && extension != 'txt' && extension != 'docx' && extension != 'pptx') {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please upload a .pdf, .txt, or .docx file.'),
+          content: const Text('Please upload a .pdf, .txt, .docx, or .pptx file.'),
           backgroundColor: Colors.red.shade600,
         ),
       );
@@ -506,7 +525,7 @@ $extractedText
                     SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        'Our AI will automatically scan your .txt or .pdf file and generate a multiple-choice exam.',
+                        'Our AI will automatically scan your .txt, .pdf, .docx, or .pptx file and generate a multiple-choice exam.',
                         style: TextStyle(
                           color: Colors.black87,
                           fontSize: 14,
@@ -634,7 +653,7 @@ $extractedText
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Supported formats: .txt, .pdf, .docx',
+                          'Supported formats: .txt, .pdf, .docx, .pptx',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade600,

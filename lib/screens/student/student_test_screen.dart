@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:screen_protector/screen_protector.dart';
 import 'package:examapp/screens/student/student_exam_result_screen.dart';
 
 class StudentTestScreen extends StatefulWidget {
@@ -41,6 +44,7 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
   @override
   void initState() {
     super.initState();
+    _secureScreen();
     WidgetsBinding.instance.addObserver(this);
     _totalSeconds = widget.durationMinutes * 60;
     _calculateRemainingTime();
@@ -55,6 +59,24 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
     });
 
     _fetchExamQuestions();
+  }
+
+  Future<void> _secureScreen() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        await ScreenProtector.preventScreenshotOn();
+      } catch (e) {
+        debugPrint('Screenshot block failed: $e');
+      }
+    }
+  }
+
+  Future<void> _unsecureScreen() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        await ScreenProtector.preventScreenshotOff();
+      } catch (e) {}
+    }
   }
 
   @override
@@ -123,6 +145,17 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
           final qList = (data['questions'] as List)
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
+
+          // AI / Anti-Cheat feature: Shuffle questions and options
+          qList.shuffle();
+          for (var q in qList) {
+            if (q['options'] is List) {
+              final options = List<String>.from(q['options']);
+              options.shuffle();
+              q['options'] = options;
+            }
+          }
+
           setState(() {
             _questions = qList;
             _isLoading = false;
@@ -143,6 +176,7 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
 
   @override
   void dispose() {
+    _unsecureScreen();
     WidgetsBinding.instance.removeObserver(this);
     _timer.cancel();
     _pageController.dispose();
@@ -556,7 +590,18 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
                           child: ElevatedButton(
-                            onPressed: _showSubmitDialog,
+                            onPressed: () {
+                              if (_selectedAnswers.length < _questions.length) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Please answer all questions before submitting.'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+                              _showSubmitDialog();
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green.shade600,
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -580,7 +625,7 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
                   )
                 : PageView.builder(
                     controller: _pageController,
-                    physics: const BouncingScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     onPageChanged: (index) {
                       setState(() {
                         _currentPage = index;
@@ -653,6 +698,15 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
+                            if (_selectedAnswers[_currentPage] == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please select an answer before proceeding.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
                             _pageController.nextPage(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeOut,
@@ -679,7 +733,18 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
                     else
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _showSubmitDialog,
+                          onPressed: () {
+                            if (_selectedAnswers.length < _questions.length) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please answer all questions before submitting.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            _showSubmitDialog();
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade600,
                             padding: const EdgeInsets.symmetric(vertical: 16),

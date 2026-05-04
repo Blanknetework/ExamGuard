@@ -39,18 +39,12 @@ class StudentDashboard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Image.asset(
-                    'Images/Polygon.png',
-                    width: 32,
-                    height: 40,
-                    fit: BoxFit.contain,
-                  ),
+                Image.asset(
+                  'Images/app_icon.png',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.contain,
+                  color: Colors.white,
                 ),
                 const SizedBox(width: 16),
                 const Expanded(

@@ -46,6 +46,9 @@ dependencies:
   shared_preferences: ^2.5.4
   email_otp: ^3.1.0
   http: any
+  archive: ^3.6.1
+  confetti: ^0.8.0
+  screen_protector: ^1.5.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -71,7 +74,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
-    - Images/Polygon.png
+    - Images/app_icon.png
     - Images/tk.png
     - Images/student.png
     - Images/Vector.png

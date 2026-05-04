@@ -154,18 +154,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Image.asset(
-                  'Images/Polygon.png',
-                  width: 24,
-                  height: 30,
-                  fit: BoxFit.contain,
-                ),
+              Image.asset(
+                'Images/app_icon.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.contain,
+                color: Colors.white,
               ),
               const SizedBox(width: 16),
               const Expanded(

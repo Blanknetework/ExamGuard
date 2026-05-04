@@ -646,18 +646,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Image.asset(
-                          'Images/Polygon.png',
-                          width: 50,
-                          height: 60,
-                          fit: BoxFit.contain,
-                        ),
+                      Image.asset(
+                        'Images/app_icon.png',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.contain,
+                        color: Colors.white,
                       ),
                       const SizedBox(height: 16),
                       const Text(

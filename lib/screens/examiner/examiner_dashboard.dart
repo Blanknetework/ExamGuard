@@ -19,7 +19,7 @@ class ExaminerDashboard extends StatefulWidget {
 }
 
 class _ExaminerDashboardState extends State<ExaminerDashboard> {
-  String _currentSection = 'dashboard';
+  String _currentSection = 'manage_exams';
   Timer? _refreshTimer;
 
   @override
@@ -64,21 +64,15 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                 GestureDetector(
                   onTap: () {
                     setState(() {
-                      _currentSection = 'dashboard';
+                      _currentSection = 'manage_exams';
                     });
                   },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Image.asset(
-                      'Images/Polygon.png',
-                      width: 32,
-                      height: 40,
-                      fit: BoxFit.contain,
-                    ),
+                  child: Image.asset(
+                    'Images/app_icon.png',
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.contain,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -163,38 +157,45 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 24,
+                ),
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Three Action Cards
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildActionCard('Manage\nExams', Icons.laptop_mac, () {
-                        setState(() {
-                          _currentSection = 'manage_exams';
-                        });
-                      }),
-                      _buildActionCard('Manage\nRooms', Icons.groups, () {
-                        setState(() {
-                          _currentSection = 'manage_rooms';
-                        });
-                      }),
-                      _buildActionCard(
-                        'Examiner\nProfile',
-                        Icons.person_outline,
-                        () {},
-                      ),
-                    ],
-                  ),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Three Action Cards
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildActionCard('Manage\nExams', Icons.laptop_mac, () {
+                          setState(() {
+                            _currentSection = 'manage_exams';
+                          });
+                        }),
+                        _buildActionCard('Manage\nRooms', Icons.groups, () {
+                          setState(() {
+                            _currentSection = 'manage_rooms';
+                          });
+                        }),
+                        _buildActionCard(
+                          'Examiner\nProfile',
+                          Icons.person_outline,
+                          () {
+                            setState(() {
+                              _currentSection = 'examiner_profile';
+                            });
+                          },
+                        ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  _buildDynamicContent(),
-                ],
+                    _buildDynamicContent(),
+                  ],
+                ),
               ),
-            ),
             ),
           ),
         ],
@@ -390,17 +391,6 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
         children: [
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () {
-                  setState(() {
-                    _currentSection = 'dashboard';
-                  });
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 12),
               const Text(
                 'Manage Exams',
                 style: TextStyle(
@@ -607,17 +597,6 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
         children: [
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.black),
-                onPressed: () {
-                  setState(() {
-                    _currentSection = 'dashboard';
-                  });
-                },
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 12),
               const Text(
                 'Manage Rooms',
                 style: TextStyle(
@@ -805,25 +784,33 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                         final data = doc.data();
                         final examTitle = data['examTitle'] ?? 'Untitled Exam';
                         final roomCode = doc.id;
-                        final durationMinutesRaw = data['durationMinutes'] ?? 60;
+                        final durationMinutesRaw =
+                            data['durationMinutes'] ?? 60;
                         final durationMinutes = durationMinutesRaw is num
                             ? durationMinutesRaw.toInt()
                             : int.tryParse(durationMinutesRaw.toString()) ?? 60;
                         final startedAtTs = data['startedAt'] as Timestamp?;
                         final startedAt =
                             startedAtTs?.toDate() ?? DateTime.now();
-                        
-                        final endTime = startedAt.add(Duration(minutes: durationMinutes));
+
+                        final endTime = startedAt.add(
+                          Duration(minutes: durationMinutes),
+                        );
                         final hasEnded = DateTime.now().isAfter(endTime);
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: hasEnded ? Colors.grey.shade100 : Colors.green.shade50,
+                            color: hasEnded
+                                ? Colors.grey.shade100
+                                : Colors.green.shade50,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                                color: hasEnded ? Colors.grey.shade400 : Colors.green.shade300),
+                              color: hasEnded
+                                  ? Colors.grey.shade400
+                                  : Colors.green.shade300,
+                            ),
                           ),
                           child: Row(
                             children: [
@@ -836,7 +823,9 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
-                                        color: hasEnded ? Colors.grey.shade600 : Colors.black87,
+                                        color: hasEnded
+                                            ? Colors.grey.shade600
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -845,7 +834,9 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: hasEnded ? Colors.grey.shade600 : Colors.green.shade700,
+                                        color: hasEnded
+                                            ? Colors.grey.shade600
+                                            : Colors.green.shade700,
                                       ),
                                     ),
                                   ],
@@ -855,8 +846,12 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                               Row(
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                    onPressed: () => _deleteRoom(roomCode, examTitle),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () =>
+                                        _deleteRoom(roomCode, examTitle),
                                   ),
                                   const SizedBox(width: 4),
                                   ElevatedButton(
@@ -866,24 +861,30 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (_) => ExamOngoingScreen(
-                                                  roomCode: roomCode,
-                                                  examTitle: examTitle,
-                                                  durationMinutes: durationMinutes,
-                                                  startedAt: startedAt,
-                                                ),
+                                                builder: (_) =>
+                                                    ExamOngoingScreen(
+                                                      roomCode: roomCode,
+                                                      examTitle: examTitle,
+                                                      durationMinutes:
+                                                          durationMinutes,
+                                                      startedAt: startedAt,
+                                                    ),
                                               ),
                                             );
                                           },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: hasEnded ? Colors.grey : Colors.green,
+                                      backgroundColor: hasEnded
+                                          ? Colors.grey
+                                          : Colors.green,
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 16,
                                       ),
                                     ),
                                     child: Text(
                                       hasEnded ? 'Ended' : 'Monitor',
-                                      style: const TextStyle(color: Colors.white),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -901,83 +902,12 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
           ],
         ],
       );
+    } else if (_currentSection == 'examiner_profile') {
+      return _buildExaminerProfile();
     }
 
     // Default: 'dashboard'
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Text(
-        'Please sign in to view ongoing exams.',
-        style: TextStyle(color: Colors.black54, fontSize: 14),
-      );
-    }
-
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
-          .collection('exams')
-          .where('examinerId', isEqualTo: user.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return Text(
-            'Failed to load exams: ${snapshot.error}',
-            style: const TextStyle(color: Colors.red, fontSize: 13),
-          );
-        }
-
-        final docs =
-            List<QueryDocumentSnapshot<Map<String, dynamic>>>.from(
-              snapshot.data?.docs ?? const [],
-            )..sort((a, b) {
-              final aTs = a.data()['createdAt'];
-              final bTs = b.data()['createdAt'];
-              final aMillis = aTs is Timestamp ? aTs.millisecondsSinceEpoch : 0;
-              final bMillis = bTs is Timestamp ? bTs.millisecondsSinceEpoch : 0;
-              return bMillis.compareTo(aMillis);
-            });
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Ongoing Exams:',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (docs.isEmpty)
-              Text(
-                'No exams uploaded yet.',
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
-              )
-            else
-              ...docs.asMap().entries.map((entry) {
-                final i = entry.key;
-                final data = entry.value.data();
-                final title = (data['title'] ?? '').toString().trim().isNotEmpty
-                    ? data['title'].toString().trim()
-                    : 'Untitled Exam';
-                final progressRaw = data['progress'];
-                final progress = progressRaw is num
-                    ? progressRaw.toDouble().clamp(0.0, 1.0)
-                    : 0.0;
-                return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: i == docs.length - 1 ? 0 : 24,
-                  ),
-                  child: _buildExamItem(context, title, progress),
-                );
-              }),
-          ],
-        );
-      },
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildExamItem(BuildContext context, String title, double progress) {
@@ -1120,6 +1050,132 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
     );
   }
 
+  Widget _buildExaminerProfile() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Text(
+        'Please sign in to view your profile.',
+        style: TextStyle(color: Colors.black54, fontSize: 14),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Examiner Profile',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              const CircleAvatar(
+                radius: 40,
+                backgroundColor: Color(0xFF2F66D0),
+                child: Icon(Icons.person, size: 40, color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                user.displayName != null && user.displayName!.isNotEmpty
+                    ? user.displayName!
+                    : 'Examiner',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user.email ?? 'No email provided',
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildProfileStatCard('Total\nExams', Icons.laptop_mac),
+                  _buildProfileStatCard('Active\nRooms', Icons.meeting_room),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileStatCard(String title, IconData icon) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(title.contains('Exams') ? 'exams' : 'rooms')
+          .where(
+            'examinerId',
+            isEqualTo: FirebaseAuth.instance.currentUser?.uid,
+          )
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2F66D0).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: const Color(0xFF2F66D0), size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              count.toString(),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _deleteExam(String docId, String title) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -1147,7 +1203,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
     if (shouldDelete != true) return;
 
     await FirebaseFirestore.instance.collection('exams').doc(docId).delete();
-    
+
     final roomsQuery = await FirebaseFirestore.instance
         .collection('rooms')
         .where('examTitle', isEqualTo: title)
@@ -1182,7 +1238,10 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );

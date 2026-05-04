@@ -1,9 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:confetti/confetti.dart';
 
-class StudentExamResultScreen extends StatelessWidget {
+class StudentExamResultScreen extends StatefulWidget {
   final String score;
 
   const StudentExamResultScreen({super.key, required this.score});
+
+  @override
+  State<StudentExamResultScreen> createState() =>
+      _StudentExamResultScreenState();
+}
+
+class _StudentExamResultScreenState extends State<StudentExamResultScreen> {
+  late ConfettiController _confettiController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
+    _confettiController.play();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +55,16 @@ class StudentExamResultScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Main Content Card
           Center(
             child: SingleChildScrollView(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 32,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
@@ -60,7 +87,9 @@ class StudentExamResultScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFDBEAFE).withValues(alpha: 0.5),
+                            color: const Color(
+                              0xFFDBEAFE,
+                            ).withValues(alpha: 0.5),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -73,7 +102,7 @@ class StudentExamResultScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     const Text(
                       'Congratulations!',
                       style: TextStyle(
@@ -85,7 +114,7 @@ class StudentExamResultScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
-                    
+
                     const Text(
                       'You have successfully completed your exam. Here is your final score:',
                       style: TextStyle(
@@ -97,14 +126,20 @@ class StudentExamResultScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Score Box
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1.5,
+                        ),
                       ),
                       child: Column(
                         children: [
@@ -119,7 +154,7 @@ class StudentExamResultScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            score,
+                            widget.score,
                             style: const TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w900,
@@ -130,15 +165,14 @@ class StudentExamResultScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     SizedBox(
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Securely pop back to the first route (dashboard)
                           Navigator.popUntil(context, (route) => route.isFirst);
                         },
                         style: ElevatedButton.styleFrom(
@@ -162,6 +196,23 @@ class StudentExamResultScreen extends StatelessWidget {
                   ],
                 ),
               ),
+            ),
+          ),
+
+          // Confetti overlay
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple,
+              ],
             ),
           ),
         ],
