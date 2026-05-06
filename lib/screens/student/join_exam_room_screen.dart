@@ -109,302 +109,560 @@ class _JoinExamRoomScreenState extends State<JoinExamRoomScreen>
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 40,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 40,
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Join Exam Room',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.5,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 32),
-                          TextField(
-                            controller: _codeController,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 2,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: '[Enter Room Code]',
-                              hintStyle: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.normal,
-                                letterSpacing: 0,
-                                color: Colors.grey.shade400,
-                              ),
-                              filled: true,
-                              fillColor: Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 20,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF2F66D0),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // Mode Selection
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Exam Detail Mode',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _examMode = 'googleForm';
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: _examMode == 'googleForm' ? const Color(0xFF2F66D0).withValues(alpha: 0.1) : Colors.white,
-                                      border: Border.all(
-                                        color: _examMode == 'googleForm' ? const Color(0xFF2F66D0) : Colors.grey.shade300,
-                                        width: _examMode == 'googleForm' ? 2 : 1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
+                              const Text(
+                                'Join Exam Room',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              TextField(
+                                controller: _codeController,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 2,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: '[Enter Room Code]',
+                                  hintStyle: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.normal,
+                                    letterSpacing: 0,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 20,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
                                     ),
-                                    child: Center(
-                                      child: Text(
-                                        'Google Form\n(List View)',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontWeight: _examMode == 'googleForm' ? FontWeight.bold : FontWeight.normal,
-                                          color: _examMode == 'googleForm' ? const Color(0xFF2F66D0) : Colors.black87,
-                                          fontSize: 13,
-                                        ),
-                                      ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF2F66D0),
+                                      width: 2,
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _examMode = 'wayground';
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: _examMode == 'wayground' ? const Color(0xFF2F66D0).withValues(alpha: 0.1) : Colors.white,
-                                      border: Border.all(
-                                        color: _examMode == 'wayground' ? const Color(0xFF2F66D0) : Colors.grey.shade300,
-                                        width: _examMode == 'wayground' ? 2 : 1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Wayground\n(Page View)',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontWeight: _examMode == 'wayground' ? FontWeight.bold : FontWeight.normal,
-                                          color: _examMode == 'wayground' ? const Color(0xFF2F66D0) : Colors.black87,
-                                          fontSize: 13,
+                              const SizedBox(height: 24),
+                              // Mode Selection
+                              const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Exam Detail Mode',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _examMode = 'googleForm';
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _examMode == 'googleForm'
+                                              ? const Color(
+                                                  0xFF2F66D0,
+                                                ).withValues(alpha: 0.1)
+                                              : Colors.white,
+                                          border: Border.all(
+                                            color: _examMode == 'googleForm'
+                                                ? const Color(0xFF2F66D0)
+                                                : Colors.grey.shade300,
+                                            width: _examMode == 'googleForm'
+                                                ? 2
+                                                : 1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Google Form\n(List View)',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontWeight:
+                                                  _examMode == 'googleForm'
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                              color: _examMode == 'googleForm'
+                                                  ? const Color(0xFF2F66D0)
+                                                  : Colors.black87,
+                                              fontSize: 13,
+                                            ),
+                                          ),
                                         ),
                                       ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _examMode = 'wayground';
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _examMode == 'wayground'
+                                              ? const Color(
+                                                  0xFF2F66D0,
+                                                ).withValues(alpha: 0.1)
+                                              : Colors.white,
+                                          border: Border.all(
+                                            color: _examMode == 'wayground'
+                                                ? const Color(0xFF2F66D0)
+                                                : Colors.grey.shade300,
+                                            width: _examMode == 'wayground'
+                                                ? 2
+                                                : 1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Wayground\n(Page View)',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontWeight:
+                                                  _examMode == 'wayground'
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                              color: _examMode == 'wayground'
+                                                  ? const Color(0xFF2F66D0)
+                                                  : Colors.black87,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 32),
+                              // Join Room Button
+                              SizedBox(
+                                width: 160,
+                                height: 50,
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    final code = _codeController.text.trim();
+                                    if (code.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: const Text(
+                                            'Please enter a room code.',
+                                          ),
+                                          backgroundColor: Colors.red.shade600,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    final roomDoc = await FirebaseFirestore
+                                        .instance
+                                        .collection('rooms')
+                                        .doc(code)
+                                        .get();
+                                    if (!context.mounted) return;
+
+                                    if (!roomDoc.exists) {
+                                      if (!context.mounted) return;
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (ctx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                          icon: const Icon(
+                                            Icons.search_off_rounded,
+                                            color: Colors.red,
+                                            size: 48,
+                                          ),
+                                          title: const Text(
+                                            'Room Not Found',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          content: const Text(
+                                            'No exam room found with that code. Please check and try again.',
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          actions: [
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFF2F66D0,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  'OK',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    // Check if exam room is closed/ended
+                                    final roomData = roomDoc.data()!;
+                                    final roomStatus = roomData['status'] ?? '';
+
+                                    // Check time-based expiry for started rooms
+                                    if (roomStatus == 'started') {
+                                      final startedAtTs = roomData['startedAt'] as Timestamp?;
+                                      final durationMins = roomData['durationMinutes'] ?? 0;
+                                      if (startedAtTs != null && durationMins > 0) {
+                                        final startedAt = startedAtTs.toDate();
+                                        final endTime = startedAt.add(Duration(minutes: durationMins));
+                                        if (DateTime.now().isAfter(endTime)) {
+                                          if (!context.mounted) return;
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (ctx) => AlertDialog(
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                              icon: const Icon(Icons.event_busy_rounded, color: Colors.red, size: 48),
+                                              title: const Text('Exam Already Over', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                              content: const Text('This exam has already ended. The time has expired and you can no longer join.', textAlign: TextAlign.center),
+                                              actions: [
+                                                SizedBox(
+                                                  width: double.infinity,
+                                                  child: ElevatedButton(
+                                                    onPressed: () => Navigator.pop(ctx),
+                                                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F66D0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                                    child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                      }
+                                    }
+
+                                    // Block if room has unknown/closed status
+                                    if (roomStatus != 'waiting' && roomStatus != 'started' && roomStatus != 'ongoing') {
+                                      if (!context.mounted) return;
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (ctx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          icon: const Icon(Icons.event_busy_rounded, color: Colors.red, size: 48),
+                                          title: const Text('Exam Already Over', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                          content: const Text('This exam room has already ended. You can no longer join.', textAlign: TextAlign.center),
+                                          actions: [
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton(
+                                                onPressed: () => Navigator.pop(ctx),
+                                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F66D0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                                child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    final user = FirebaseAuth.instance.currentUser;
+                                    if (user != null) {
+                                      // Check if already completed (participant doc)
+                                      final participantDoc = await FirebaseFirestore.instance
+                                          .collection('rooms')
+                                          .doc(code)
+                                          .collection('participants')
+                                          .doc(user.uid)
+                                          .get();
+
+                                      // Also check examHistory as backup
+                                      final historyDoc = await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(user.uid)
+                                          .collection('examHistory')
+                                          .doc(code)
+                                          .get();
+
+                                      if (!context.mounted) return;
+
+                                      final bool alreadyCompleted =
+                                          (participantDoc.exists && participantDoc.data()?['status'] == 'completed') ||
+                                          historyDoc.exists;
+
+                                      if (alreadyCompleted) {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (ctx) => AlertDialog(
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            icon: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
+                                            title: const Text('Exam Already Completed', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            content: const Text('You have already submitted your exam for this room. You cannot rejoin.', textAlign: TextAlign.center),
+                                            actions: [
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton(
+                                                  onPressed: () => Navigator.pop(ctx),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F66D0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                                  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      final userDoc = await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(user.uid)
+                                          .get();
+                                      final name = userDoc.data()?['name'] ?? 'Unknown Student';
+                                      final studentSection = (userDoc.data()?['section'] ?? '').toString().trim().toUpperCase();
+
+                                      if (!context.mounted) return;
+
+                                      // Check section match
+                                      final roomSection = (roomData['section'] ?? '').toString().trim().toUpperCase();
+                                      if (roomSection.isNotEmpty && studentSection != roomSection) {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (ctx) => AlertDialog(
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            icon: const Icon(Icons.block_rounded, color: Colors.red, size: 48),
+                                            title: const Text('Section Mismatch', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                            content: Text(
+                                              'This room is for section "$roomSection" only.\n\nYour section is "${studentSection.isEmpty ? "Not set" : studentSection}".\n\nPlease update your profile or join the correct room.',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            actions: [
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton(
+                                                  onPressed: () => Navigator.pop(ctx),
+                                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F66D0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                                  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      // Check max students capacity
+                                      final maxStudents = roomData['maxStudents'] ?? 0;
+                                      if (maxStudents > 0) {
+                                        final allParticipants = await FirebaseFirestore.instance
+                                            .collection('rooms')
+                                            .doc(code)
+                                            .collection('participants')
+                                            .get();
+                                        if (allParticipants.docs.length >= maxStudents) {
+                                          if (!context.mounted) return;
+                                          showDialog(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (ctx) => AlertDialog(
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                              icon: const Icon(Icons.group_off_rounded, color: Colors.orange, size: 48),
+                                              title: const Text('Room Full', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+                                              content: Text(
+                                                'This room has reached its maximum capacity of $maxStudents students.',
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              actions: [
+                                                SizedBox(
+                                                  width: double.infinity,
+                                                  child: ElevatedButton(
+                                                    onPressed: () => Navigator.pop(ctx),
+                                                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2F66D0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                                    child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                      }
+
+                                      await FirebaseFirestore.instance
+                                          .collection('rooms')
+                                          .doc(code)
+                                          .collection('participants')
+                                          .doc(user.uid)
+                                          .set({
+                                            'name': name,
+                                            'uid': user.uid,
+                                            'status': 'waiting',
+                                            'section': studentSection,
+                                            'joinedAt': FieldValue.serverTimestamp(),
+                                          });
+                                    }
+
+                                    if (!context.mounted) return;
+                                    Navigator.push(
+                                      context,
+                                      PageRouteBuilder(
+                                        pageBuilder:
+                                            (
+                                              context,
+                                              animation,
+                                              secondaryAnimation,
+                                            ) => WaitingApprovalScreen(
+                                              roomCode: code,
+                                              examMode: _examMode,
+                                            ),
+                                        transitionsBuilder:
+                                            (
+                                              context,
+                                              animation,
+                                              secondaryAnimation,
+                                              child,
+                                            ) {
+                                              return FadeTransition(
+                                                opacity: animation,
+                                                child: ScaleTransition(
+                                                  scale:
+                                                      Tween<double>(
+                                                        begin: 0.95,
+                                                        end: 1.0,
+                                                      ).animate(
+                                                        CurvedAnimation(
+                                                          parent: animation,
+                                                          curve: Curves
+                                                              .easeOutCubic,
+                                                        ),
+                                                      ),
+                                                  child: child,
+                                                ),
+                                              );
+                                            },
+                                        transitionDuration: const Duration(
+                                          milliseconds: 500,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2F66D0),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    'Join Room',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 32),
-                          // Join Room Button
-                          SizedBox(
-                            width: 160,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                final code = _codeController.text.trim();
-                                if (code.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Please enter a room code.',
-                                      ),
-                                      backgroundColor: Colors.red.shade600,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                final roomDoc = await FirebaseFirestore.instance
-                                    .collection('rooms')
-                                    .doc(code)
-                                    .get();
-                                if (!context.mounted) return;
-
-                                if (!roomDoc.exists) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Room not found! Check your code.',
-                                      ),
-                                      backgroundColor: Colors.red.shade600,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                final user = FirebaseAuth.instance.currentUser;
-                                if (user != null) {
-                                  final userDoc = await FirebaseFirestore
-                                      .instance
-                                      .collection('users')
-                                      .doc(user.uid)
-                                      .get();
-                                  final name =
-                                      userDoc.data()?['name'] ??
-                                      'Unknown Student';
-                                  await FirebaseFirestore.instance
-                                      .collection('rooms')
-                                      .doc(code)
-                                      .collection('participants')
-                                      .doc(user.uid)
-                                      .set({
-                                        'name': name,
-                                        'uid': user.uid,
-                                        'status': 'waiting',
-                                        'joinedAt':
-                                            FieldValue.serverTimestamp(),
-                                      });
-                                }
-
-                                if (!context.mounted) return;
-                                Navigator.push(
-                                  context,
-                                  PageRouteBuilder(
-                                    pageBuilder:
-                                        (
-                                          context,
-                                          animation,
-                                          secondaryAnimation,
-                                        ) => WaitingApprovalScreen(
-                                          roomCode: code,
-                                          examMode: _examMode,
-                                        ),
-                                    transitionsBuilder:
-                                        (
-                                          context,
-                                          animation,
-                                          secondaryAnimation,
-                                          child,
-                                        ) {
-                                          return FadeTransition(
-                                            opacity: animation,
-                                            child: ScaleTransition(
-                                              scale:
-                                                  Tween<double>(
-                                                    begin: 0.95,
-                                                    end: 1.0,
-                                                  ).animate(
-                                                    CurvedAnimation(
-                                                      parent: animation,
-                                                      curve:
-                                                          Curves.easeOutCubic,
-                                                    ),
-                                                  ),
-                                              child: child,
-                                            ),
-                                          );
-                                        },
-                                    transitionDuration: const Duration(
-                                      milliseconds: 500,
-                                    ),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2F66D0),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Join Room',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                ),
                 ),
               ),
             ),

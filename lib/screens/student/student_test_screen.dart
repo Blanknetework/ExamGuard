@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:screen_protector/screen_protector.dart';
+import 'package:screen_security/screen_security.dart';
 import 'package:examapp/screens/student/student_exam_result_screen.dart';
 
 class StudentTestScreen extends StatefulWidget {
@@ -29,7 +29,8 @@ class StudentTestScreen extends StatefulWidget {
   State<StudentTestScreen> createState() => _StudentTestScreenState();
 }
 
-class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindingObserver {
+class _StudentTestScreenState extends State<StudentTestScreen>
+    with WidgetsBindingObserver {
   bool _isLoading = true;
   List<Map<String, dynamic>> _questions = [];
   final Map<int, String> _selectedAnswers = {};
@@ -40,6 +41,11 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
 
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isSubmitting = false;
+  bool _warningShowing = false;
+  int _warningCount = 0;
+
+  final _screenSecurity = ScreenSecurity();
 
   @override
   void initState() {
@@ -64,9 +70,9 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
   Future<void> _secureScreen() async {
     if (!kIsWeb && Platform.isAndroid) {
       try {
-        await ScreenProtector.preventScreenshotOn();
+        await _screenSecurity.enable();
       } catch (e) {
-        debugPrint('Screenshot block failed: $e');
+        debugPrint('Secure flag not supported: $e');
       }
     }
   }
@@ -74,46 +80,130 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
   Future<void> _unsecureScreen() async {
     if (!kIsWeb && Platform.isAndroid) {
       try {
-        await ScreenProtector.preventScreenshotOff();
+        await _screenSecurity.disable();
       } catch (e) {}
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
-      _recordWarningAndSubmit();
+    if (_isSubmitting) return;
+    if (state == AppLifecycleState.paused) {
+      // Home button / left the app entirely -> auto submit
+      _handleLeftApp();
+    } else if (state == AppLifecycleState.inactive) {
+      // Split screen, notification shade, multi-window -> warning only
+      _handleSplitScreenOrNotification();
     }
   }
 
-  Future<void> _recordWarningAndSubmit() async {
+  Future<void> _handleLeftApp() async {
+    if (_isSubmitting) return;
+    _isSubmitting = true;
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        final docRef = FirebaseFirestore.instance
+        await FirebaseFirestore.instance
             .collection('rooms')
             .doc(widget.roomCode)
             .collection('participants')
-            .doc(user.uid);
-        await docRef.update({
-          'warnings': FieldValue.increment(1),
-        });
-
-        // Anti-Cheat: Instantly submit the test if the user leaves the app
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Text('ANTI-CHEAT TRIGGERED: Exam auto-submitted because you left the app!'),
-               backgroundColor: Colors.red,
-               duration: Duration(seconds: 5),
-             ),
-           );
-           _submitExam();
-        }
-      } catch (e) {
-        // Ignore if document not found or permissions issue
-      }
+            .doc(user.uid)
+            .update({
+              'warnings': FieldValue.increment(1),
+              'autoSubmitted': true,
+            });
+      } catch (_) {}
     }
+    if (mounted) {
+      _showAutoSubmitModal();
+    }
+  }
+
+  Future<void> _handleSplitScreenOrNotification() async {
+    if (_isSubmitting || _warningShowing) return;
+    _warningCount++;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('rooms')
+            .doc(widget.roomCode)
+            .collection('participants')
+            .doc(user.uid)
+            .update({'warnings': FieldValue.increment(1)});
+      } catch (_) {}
+    }
+    if (mounted) {
+      _showWarningModal();
+    }
+  }
+
+  void _showWarningModal() {
+    if (_warningShowing) return;
+    _warningShowing = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+        title: const Text('Warning!', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(
+          'Suspicious activity detected (split screen, notification, or multi-window).\n\nThis is warning #$_warningCount. Leaving the app will auto-submit your exam!',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                _warningShowing = false;
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2F66D0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('I Understand', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAutoSubmitModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.gpp_bad_rounded, color: Colors.red, size: 48),
+        title: const Text('Anti-Cheat Triggered!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: const Text(
+          'You left the app during the exam. Your exam is being auto-submitted now.',
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _submitExam();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
+      ),
+    ).then((_) {
+      if (_isSubmitting && mounted) _submitExam();
+    });
   }
 
   void _calculateRemainingTime() {
@@ -197,12 +287,32 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
 
   Future<void> _submitExamAutomatically() async {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Time is up! Submitting exam automatically.'),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: const Icon(Icons.timer_off_rounded, color: Colors.orange, size: 48),
+        title: const Text('Time Is Up!', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Your exam is being submitted automatically.', textAlign: TextAlign.center),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _submitExam();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2F66D0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ),
     );
-    await _submitExam();
   }
 
   Future<void> _submitExam() async {
@@ -248,7 +358,7 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
             .doc(user.uid)
             .update({
               'status': 'completed',
-              'score': score,
+              'score': finalScoreString,
               'answers': _selectedAnswers.map(
                 (key, value) => MapEntry(key.toString(), value),
               ),
@@ -358,10 +468,7 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
               duration: const Duration(milliseconds: 200),
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 16,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
                 color: isSelected
                     ? const Color(0xFF2F66D0).withValues(alpha: 0.05)
@@ -463,138 +570,319 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You cannot leave the exam until it is submitted!'),
-            backgroundColor: Colors.red,
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            icon: const Icon(Icons.lock_rounded, color: Color(0xFF2F66D0), size: 48),
+            title: const Text('Exam In Progress', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: const Text('You cannot leave the exam until it is submitted!', textAlign: TextAlign.center),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2F66D0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
         );
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F7FB),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
-        child: Container(
-          padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 8,
-            left: 16,
-            right: 16,
-            bottom: 12,
-          ),
-          decoration: const BoxDecoration(
-            color: Color(0xFF2F66D0),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(24),
-              bottomRight: Radius.circular(24),
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(100),
+          child: Container(
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 16,
+              right: 16,
+              bottom: 12,
             ),
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.examTitle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.timer_outlined,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _formatTime(_secondsRemaining),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            decoration: const BoxDecoration(
+              color: Color(0xFF2F66D0),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
               ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress.clamp(0.0, 1.0),
-                  minHeight: 6,
-                  backgroundColor: Colors.white.withValues(alpha: 0.3),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _secondsRemaining <= 120
-                        ? Colors.red.shade400
-                        : Colors.greenAccent,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Question Progress
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+            child: Column(
               children: [
-                Text(
-                  widget.examMode == 'googleForm'
-                      ? 'All Questions'
-                      : 'Question ${_currentPage + 1} of ${_questions.length}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.examTitle,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.timer_outlined,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatTime(_secondsRemaining),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  'Unanswered: ${_questions.length - _selectedAnswers.length}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withValues(alpha: 0.3),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _secondsRemaining <= 120
+                          ? Colors.red.shade400
+                          : Colors.greenAccent,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
+        ),
+        body: Column(
+          children: [
+            // Question Progress
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.examMode == 'googleForm'
+                        ? 'All Questions'
+                        : 'Question ${_currentPage + 1} of ${_questions.length}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Unanswered: ${_questions.length - _selectedAnswers.length}',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
 
-          Expanded(
-            child: widget.examMode == 'googleForm'
-                ? ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 100),
-                    itemCount: _questions.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == _questions.length) {
+            Expanded(
+              child: widget.examMode == 'googleForm'
+                  ? ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(bottom: 100),
+                      itemCount: _questions.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == _questions.length) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 32,
+                            ),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (_selectedAnswers.length <
+                                    _questions.length) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please answer all questions before submitting.',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                _showSubmitDialog();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'Submit Exam',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                         return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+                          padding: const EdgeInsets.only(
+                            bottom: 24,
+                            left: 16,
+                            right: 16,
+                          ),
+                          child: _buildQuestionContent(index),
+                        );
+                      },
+                    )
+                  : PageView.builder(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentPage = index;
+                        });
+                      },
+                      itemCount: _questions.length,
+                      itemBuilder: (context, index) {
+                        return RefreshIndicator(
+                          onRefresh: _fetchExamQuestions,
+                          color: const Color(0xFF2F66D0),
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                            child: _buildQuestionContent(index),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+            // Bottom Actions
+            if (widget.examMode == 'wayground')
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: SafeArea(
+                  child: Row(
+                    children: [
+                      if (_currentPage > 0)
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              _pageController.previousPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: Color(0xFF2F66D0)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Previous',
+                              style: TextStyle(
+                                color: Color(0xFF2F66D0),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      const SizedBox(width: 16),
+                      if (_currentPage < _questions.length - 1)
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (_selectedAnswers[_currentPage] == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please select an answer before proceeding.',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+                              _pageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2F66D0),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Next',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(
                           child: ElevatedButton(
                             onPressed: () {
                               if (_selectedAnswers.length < _questions.length) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Please answer all questions before submitting.'),
+                                    content: Text(
+                                      'Please answer all questions before submitting.',
+                                    ),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -611,165 +899,22 @@ class _StudentTestScreenState extends State<StudentTestScreen> with WidgetsBindi
                               ),
                             ),
                             child: const Text(
-                              'Submit Exam',
-                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                              'Submit',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        );
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-                        child: _buildQuestionContent(index),
-                      );
-                    },
-                  )
-                : PageView.builder(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentPage = index;
-                      });
-                    },
-                    itemCount: _questions.length,
-                    itemBuilder: (context, index) {
-                      return RefreshIndicator(
-                        onRefresh: _fetchExamQuestions,
-                        color: const Color(0xFF2F66D0),
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(
-                            parent: BouncingScrollPhysics(),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: _buildQuestionContent(index),
                         ),
-                      );
-                    },
+                    ],
                   ),
-          ),
-
-          // Bottom Actions
-          if (widget.examMode == 'wayground')
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    if (_currentPage > 0)
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOut,
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: const BorderSide(color: Color(0xFF2F66D0)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Previous',
-                            style: TextStyle(
-                              color: Color(0xFF2F66D0),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      const Spacer(),
-                    const SizedBox(width: 16),
-                    if (_currentPage < _questions.length - 1)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_selectedAnswers[_currentPage] == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please select an answer before proceeding.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOut,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2F66D0),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Next',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (_selectedAnswers.length < _questions.length) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Please answer all questions before submitting.'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-                            _showSubmitDialog();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade600,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text(
-                            'Submit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 }

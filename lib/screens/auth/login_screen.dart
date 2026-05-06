@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -268,24 +269,31 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final googleSignIn = GoogleSignIn();
-      final account = await googleSignIn.signIn();
-      if (account == null) {
-        setState(() {
-          _isLoading = false;
-        });
-        return; // User cancelled
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        final googleSignIn = GoogleSignIn();
+        final account = await googleSignIn.signIn();
+        if (account == null) {
+          setState(() {
+            _isLoading = false;
+          });
+          return; // User cancelled
+        }
+
+        final auth = await account.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: auth.accessToken,
+          idToken: auth.idToken,
+        );
+
+        userCredential = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
       }
-
-      final auth = await account.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: auth.accessToken,
-        idToken: auth.idToken,
-      );
-
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
 
       // Check User Role
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -299,7 +307,7 @@ class _LoginScreenState extends State<LoginScreen> {
         resolvedRole = userDoc.get('role');
       } else {
         await FirebaseAuth.instance.signOut();
-        await googleSignIn.signOut();
+        if (!kIsWeb) await GoogleSignIn().signOut();
         if (!mounted) return;
         setState(() {
           _isLoading = false;
@@ -332,7 +340,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (resolvedRole != _selectedRole) {
         await FirebaseAuth.instance.signOut();
-        await googleSignIn.signOut();
+        if (!kIsWeb) await GoogleSignIn().signOut();
         if (!mounted) return;
         setState(() {
           _isLoading = false;

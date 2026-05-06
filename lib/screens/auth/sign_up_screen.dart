@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -120,8 +121,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     String password,
     String name,
     String role,
-    AuthCredential? googleCredential,
-  ) async {
+    AuthCredential? googleCredential, {
+    UserCredential? webUserCredential,
+  }) async {
     final TextEditingController otpController = TextEditingController();
     bool isVerifying = false;
 
@@ -164,11 +166,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 TextButton(
                   onPressed: isVerifying
                       ? null
-                      : () {
+                      : () async {
                           if (googleCredential != null) {
-                            GoogleSignIn().signOut();
+                            await GoogleSignIn().signOut();
+                          } else if (webUserCredential != null) {
+                            if (webUserCredential.additionalUserInfo?.isNewUser == true) {
+                              await FirebaseAuth.instance.currentUser?.delete();
+                            }
+                            await FirebaseAuth.instance.signOut();
                           }
-                          Navigator.pop(context);
+                          if (context.mounted) Navigator.pop(context);
                         },
                   child: const Text('Cancel'),
                 ),
@@ -181,14 +188,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             otp: otpController.text.trim(),
                           );
                           if (isValid) {
-                            Navigator.pop(context); // Close dialog
-                            if (googleCredential != null) {
+                            if (context.mounted) Navigator.pop(context); // Close dialog
+                            if (googleCredential != null || webUserCredential != null) {
                               _completeGoogleSignUp(
-                                googleCredential,
-                                email,
-                                name,
-                                password,
-                                role,
+                                credential: googleCredential,
+                                webUserCredential: webUserCredential,
+                                email: email,
+                                name: name,
+                                password: password,
+                                role: role,
                               );
                             } else {
                               _createAccount(email, password, name, role);
@@ -334,17 +342,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     try {
-      final googleSignIn = GoogleSignIn();
-      final account = await googleSignIn.signIn();
-      if (account == null) return;
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        final userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+        _showGooglePasswordDialog(webUserCredential: userCredential);
+      } else {
+        final googleSignIn = GoogleSignIn();
+        final account = await googleSignIn.signIn();
+        if (account == null) return;
 
-      final auth = await account.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: auth.accessToken,
-        idToken: auth.idToken,
-      );
+        final auth = await account.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: auth.accessToken,
+          idToken: auth.idToken,
+        );
 
-      _showGooglePasswordDialog(credential, account);
+        _showGooglePasswordDialog(credential: credential, account: account);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -356,10 +370,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  Future<void> _showGooglePasswordDialog(
-    AuthCredential credential,
-    GoogleSignInAccount account,
-  ) async {
+  Future<void> _showGooglePasswordDialog({
+    AuthCredential? credential,
+    GoogleSignInAccount? account,
+    UserCredential? webUserCredential,
+  }) async {
     final TextEditingController passController = TextEditingController();
     final TextEditingController rePassController = TextEditingController();
     bool isProcessing = false;
@@ -452,9 +467,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 TextButton(
                   onPressed: isProcessing
                       ? null
-                      : () {
-                          GoogleSignIn().signOut();
-                          Navigator.pop(context);
+                      : () async {
+                          if (kIsWeb && webUserCredential != null) {
+                            if (webUserCredential.additionalUserInfo?.isNewUser == true) {
+                              await FirebaseAuth.instance.currentUser?.delete();
+                            }
+                            await FirebaseAuth.instance.signOut();
+                          } else {
+                            await GoogleSignIn().signOut();
+                          }
+                          if (context.mounted) Navigator.pop(context);
                         },
                   child: const Text('Cancel'),
                 ),
@@ -467,7 +489,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                             // Now send OTP for google sign up
                             await _setupEmailOTP();
-                            String email = account.email.toLowerCase();
+                            String email = kIsWeb ? webUserCredential!.user!.email!.toLowerCase() : account!.email.toLowerCase();
                             bool isSent = await EmailOTP.sendOTP(email: email);
 
                             if (context.mounted && Navigator.canPop(context)) {
@@ -476,13 +498,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                             if (!context.mounted) return;
                             if (isSent) {
-                              _showOTPDialog(
-                                email,
-                                passController.text,
-                                account.displayName ?? 'Google User',
-                                _selectedRole!,
-                                credential,
-                              );
+                                _showOTPDialog(
+                                  email,
+                                  passController.text,
+                                  kIsWeb ? (webUserCredential!.user!.displayName ?? 'Google User') : (account!.displayName ?? 'Google User'),
+                                  _selectedRole!,
+                                  credential,
+                                  webUserCredential: webUserCredential,
+                                );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -523,17 +546,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Future<void> _completeGoogleSignUp(
-    AuthCredential credential,
-    String email,
-    String name,
-    String password,
-    String role,
-  ) async {
+  Future<void> _completeGoogleSignUp({
+    AuthCredential? credential,
+    UserCredential? webUserCredential,
+    required String email,
+    required String name,
+    required String password,
+    required String role,
+  }) async {
     setState(() => _isLoading = true);
     try {
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
+      final userCredential = webUserCredential ?? await FirebaseAuth.instance.signInWithCredential(
+        credential!,
       );
 
       await userCredential.user!.updatePassword(password);
@@ -560,8 +584,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       if (resolvedRole != role) {
+        if (webUserCredential?.additionalUserInfo?.isNewUser == true) {
+          await userCredential.user!.delete();
+        }
         await FirebaseAuth.instance.signOut();
-        await GoogleSignIn().signOut();
+        if (!kIsWeb) await GoogleSignIn().signOut();
         if (!mounted) return;
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(

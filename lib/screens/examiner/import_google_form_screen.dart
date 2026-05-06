@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -292,21 +294,33 @@ class _ImportGoogleFormScreenState extends State<ImportGoogleFormScreen> {
       debugPrint('Google Form: expanded link → $expandedLink');
       debugPrint('Google Form: extracted formId → $formId');
 
-      final googleSignIn = GoogleSignIn(
-        scopes: ['https://www.googleapis.com/auth/forms.body.readonly'],
-      );
-      final account = await googleSignIn.signIn();
-      if (account == null) {
-        throw Exception('Google sign-in was cancelled.');
+      String? accessToken;
+
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('https://www.googleapis.com/auth/forms.body.readonly');
+        final userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+        final OAuthCredential? credential = userCredential.credential as OAuthCredential?;
+        accessToken = credential?.accessToken;
+      } else {
+        final googleSignIn = GoogleSignIn(
+          scopes: ['https://www.googleapis.com/auth/forms.body.readonly'],
+        );
+        final account = await googleSignIn.signIn();
+        if (account == null) {
+          throw Exception('Google sign-in was cancelled.');
+        }
+        final auth = await account.authentication;
+        accessToken = auth.accessToken;
       }
-      final auth = await account.authentication;
-      final accessToken = auth.accessToken;
+
       if (accessToken == null || accessToken.isEmpty) {
         throw Exception('Failed to get Google access token.');
       }
+      final String token = accessToken;
 
       Future<http.Response> tryFetch(String id) =>
-          _getFormWithToken(id, accessToken);
+          _getFormWithToken(id, token);
 
       var response = await tryFetch(formId);
       if (response.statusCode == 404) {

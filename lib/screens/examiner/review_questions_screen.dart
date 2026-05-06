@@ -25,6 +25,7 @@ class ReviewQuestionsScreen extends StatefulWidget {
 class _ReviewQuestionsScreenState extends State<ReviewQuestionsScreen> {
   late List<Map<String, dynamic>> _questions;
   late TextEditingController _examTitleController;
+  String? _newlyCreatedExamId;
   bool _isSaving = false;
 
   bool get _showManualHeader {
@@ -74,6 +75,8 @@ class _ReviewQuestionsScreenState extends State<ReviewQuestionsScreen> {
       return;
     }
 
+    if (_isSaving) return;
+
     setState(() {
       _isSaving = true;
     });
@@ -94,18 +97,37 @@ class _ReviewQuestionsScreenState extends State<ReviewQuestionsScreen> {
           'questions': _questions,
         };
 
-        if (widget.existingExamId != null &&
-            widget.existingExamId!.trim().isNotEmpty) {
+        if ((widget.existingExamId != null && widget.existingExamId!.trim().isNotEmpty) || _newlyCreatedExamId != null) {
+          final idToUpdate = (widget.existingExamId != null && widget.existingExamId!.trim().isNotEmpty) ? widget.existingExamId! : _newlyCreatedExamId!;
           await FirebaseFirestore.instance
               .collection('exams')
-              .doc(widget.existingExamId)
+              .doc(idToUpdate)
               .update({
                 'title': examTitle,
                 'questions': _questions,
                 'updatedAt': FieldValue.serverTimestamp(),
               });
         } else {
-          await FirebaseFirestore.instance.collection('exams').add(examData);
+          final existingQuery = await FirebaseFirestore.instance
+              .collection('exams')
+              .where('examinerId', isEqualTo: user.uid)
+              .get();
+
+          final existingDocs = existingQuery.docs.where((doc) {
+            return (doc.data()['title'] ?? '').toString().trim() == examTitle;
+          }).toList();
+
+          if (existingDocs.isNotEmpty) {
+            final docRef = existingDocs.first.reference;
+            await docRef.update({
+              'questions': _questions,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+            _newlyCreatedExamId = docRef.id;
+          } else {
+            final docRef = await FirebaseFirestore.instance.collection('exams').add(examData);
+            _newlyCreatedExamId = docRef.id;
+          }
         }
 
         if (mounted) {

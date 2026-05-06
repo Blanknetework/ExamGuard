@@ -7,6 +7,7 @@ import 'package:examapp/screens/examiner/manual_exam_builder_screen.dart';
 import 'package:examapp/screens/examiner/review_questions_screen.dart';
 import 'package:examapp/screens/examiner/room_waiting_screen.dart';
 import 'package:examapp/screens/examiner/exam_ongoing_screen.dart';
+import 'package:examapp/screens/examiner/room_participants_screen.dart';
 import 'package:examapp/screens/auth/login_screen.dart';
 import 'dart:math';
 import 'dart:async';
@@ -27,7 +28,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
     super.initState();
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
-        setState(() {}); // refresh the UI check for ended timers
+        setState(() {});
       }
     });
   }
@@ -157,9 +158,11 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 24,
+                padding: const EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 24,
+                  bottom: 100,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,10 +459,7 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                     final questionCount = (data['questions'] is List)
                         ? (data['questions'] as List).length
                         : 0;
-                    final progressRaw = data['progress'];
-                    final progress = progressRaw is num
-                        ? progressRaw.toDouble().clamp(0.0, 1.0)
-                        : 0.0;
+
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -475,12 +475,43 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    if (data['status'] == 'completed')
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.green.shade200,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Done',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.green.shade700,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -491,16 +522,9 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: progress,
-                                    minHeight: 6,
-                                    backgroundColor: Colors.grey.shade300,
-                                    valueColor: const AlwaysStoppedAnimation(
-                                      Color(0xFF2F66D0),
-                                    ),
-                                  ),
+                                _ExamProgressBar(
+                                  title: title,
+                                  examinerId: user.uid,
                                 ),
                               ],
                             ),
@@ -549,16 +573,41 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                                 );
                               } else if (value == 'delete') {
                                 await _deleteExam(doc.id, title);
+                              } else if (value == 'done') {
+                                await FirebaseFirestore.instance
+                                    .collection('exams')
+                                    .doc(doc.id)
+                                    .update({'status': 'completed'});
+                              } else if (value == 'ongoing') {
+                                await FirebaseFirestore.instance
+                                    .collection('exams')
+                                    .doc(doc.id)
+                                    .update({'status': 'ongoing'});
                               }
                             },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'view', child: Text('View')),
-                              PopupMenuItem(value: 'edit', child: Text('Edit')),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete'),
-                              ),
-                            ],
+                            itemBuilder: (context) {
+                              final isDone = data['status'] == 'completed';
+                              return [
+                                const PopupMenuItem(
+                                  value: 'view',
+                                  child: Text('View'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Edit'),
+                                ),
+                                PopupMenuItem(
+                                  value: isDone ? 'ongoing' : 'done',
+                                  child: Text(
+                                    isDone ? 'Mark as Ongoing' : 'Mark as Done',
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Delete'),
+                                ),
+                              ];
+                            },
                           ),
                         ],
                       ),
@@ -567,27 +616,6 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                 );
               },
             ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _showCreateExamOptions,
-              icon: const Icon(Icons.add, size: 20),
-              label: const Text(
-                'Create New Exam',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2F66D0),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-            ),
-          ),
         ],
       );
     } else if (_currentSection == 'manage_rooms') {
@@ -686,10 +714,11 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
                               });
 
                         final availableDocs = allDocs.where((doc) {
-                          final title = (doc.data()['title'] ?? '')
-                              .toString()
-                              .trim();
+                          final data = doc.data();
+                          final title = (data['title'] ?? '').toString().trim();
+                          final status = (data['status'] ?? '').toString();
                           return title.isNotEmpty &&
+                              status != 'completed' &&
                               !activeExamTitles.contains(title);
                         }).toList();
 
@@ -910,146 +939,6 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildExamItem(BuildContext context, String title, double progress) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 8,
-                  backgroundColor: Colors.grey.shade500,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF2F66D0),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            IconButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      backgroundColor: Colors.white,
-                      insetPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 24,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Ongoing Exams:',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            _buildExamCard(title, progress),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-              icon: const Icon(
-                Icons.settings_outlined,
-                color: Colors.black87,
-                size: 26,
-              ),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExamCard(String title, double progress) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFF5A8DF4), width: 1.5),
-      ),
-      padding: const EdgeInsets.only(top: 12, left: 12, right: 12, bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.grey.shade500,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF2F66D0),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: SizedBox(
-              height: 36,
-              child: ElevatedButton(
-                onPressed: () {
-                  // View action
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2F66D0),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                ),
-                child: const Text(
-                  'View',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildExaminerProfile() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -1125,6 +1014,168 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          'Rooms & Results',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('rooms')
+              .where('examinerId', isEqualTo: user.uid)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Text('Error loading rooms: ${snapshot.error}');
+            }
+
+            final docs = List<QueryDocumentSnapshot>.from(
+              snapshot.data?.docs ?? const [],
+            );
+            docs.sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aTime = aData['createdAt'] as Timestamp?;
+              final bTime = bData['createdAt'] as Timestamp?;
+              final aMillis = aTime?.millisecondsSinceEpoch ?? 0;
+              final bMillis = bTime?.millisecondsSinceEpoch ?? 0;
+              return bMillis.compareTo(aMillis); // descending
+            });
+
+            if (docs.isEmpty) {
+              return const Text('You have not created any rooms yet.');
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: docs.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final roomData = docs[index].data() as Map<String, dynamic>;
+                final roomCode = docs[index].id;
+                final examTitle = roomData['examTitle'] ?? 'Unknown Exam';
+                final section = (roomData['section'] ?? '').toString();
+                final sectionDisplay = section.isNotEmpty
+                    ? section
+                    : 'No Section';
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade300),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // View Result Button on the left as requested
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  RoomParticipantsScreen(roomCode: roomCode),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.analytics_outlined, size: 18),
+                        label: const Text(
+                          'View Result',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2F66D0),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              examTitle,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: Colors.blue.shade200,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      sectionDisplay,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Room: $roomCode',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );
@@ -1202,23 +1253,34 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
 
     if (shouldDelete != true) return;
 
-    await FirebaseFirestore.instance.collection('exams').doc(docId).delete();
+    try {
+      await FirebaseFirestore.instance.collection('exams').doc(docId).delete();
 
-    final roomsQuery = await FirebaseFirestore.instance
-        .collection('rooms')
-        .where('examTitle', isEqualTo: title)
-        .get();
-    for (var doc in roomsQuery.docs) {
-      await doc.reference.delete();
+      final roomsQuery = await FirebaseFirestore.instance
+          .collection('rooms')
+          .where('examTitle', isEqualTo: title)
+          .get();
+      for (var doc in roomsQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Exam deleted.'),
+          backgroundColor: Colors.green.shade600,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete exam: $e'),
+          backgroundColor: Colors.red.shade600,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Exam deleted.'),
-        backgroundColor: Colors.red.shade600,
-      ),
-    );
   }
 
   Future<void> _deleteRoom(String roomId, String examTitle) async {
@@ -1274,6 +1336,8 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
 
   void _showRoomCodeDialog(BuildContext context, String examTitle) {
     final roomCode = _generateRoomCode();
+    final sectionController = TextEditingController();
+    final maxStudentsController = TextEditingController();
 
     showDialog(
       context: context,
@@ -1282,169 +1346,246 @@ class _ExaminerDashboardState extends State<ExaminerDashboard> {
         return Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2F66D0).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                  child: const Icon(
-                    Icons.meeting_room_rounded,
-                    size: 36,
-                    color: Color(0xFF2F66D0),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Room Code Generated',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFE2E8F0),
-                      width: 2,
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2F66D0).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.meeting_room_rounded,
+                      size: 36,
+                      color: Color(0xFF2F66D0),
                     ),
                   ),
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        roomCode,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.5,
-                          color: Color(0xFF2F66D0),
-                        ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Room Code Generated',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                        width: 2,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  examTitle,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Share this code with your students.\nPress continue to verify participants.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
                         child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade600,
+                          roomCode,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2.5,
+                            color: Color(0xFF2F66D0),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          // Save the room to Firestore
-                          final user = FirebaseAuth.instance.currentUser;
-                          if (user != null) {
-                            await FirebaseFirestore.instance
-                                .collection('rooms')
-                                .doc(roomCode)
-                                .set({
-                                  'examTitle': examTitle,
-                                  'examinerId': user.uid,
-                                  'status': 'waiting',
-                                  'createdAt': FieldValue.serverTimestamp(),
-                                });
-                          }
-
-                          if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RoomWaitingScreen(
-                                roomCode: roomCode,
-                                examTitle: examTitle,
-                              ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    examTitle,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: sectionController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: InputDecoration(
+                      labelText: 'Section *',
+                      hintText: 'e.g. SBIT-3Q',
+                      prefixIcon: const Icon(
+                        Icons.class_rounded,
+                        color: Color(0xFF2F66D0),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF2F66D0),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: maxStudentsController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Max Students *',
+                      hintText: 'e.g. 40',
+                      prefixIcon: const Icon(
+                        Icons.groups_rounded,
+                        color: Color(0xFF2F66D0),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF2F66D0),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Only students with the matching section can join.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2F66D0),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        child: const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final section = sectionController.text
+                                .trim()
+                                .toUpperCase();
+                            final maxText = maxStudentsController.text.trim();
+
+                            if (section.isEmpty) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter a section.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            if (maxText.isEmpty ||
+                                int.tryParse(maxText) == null ||
+                                int.parse(maxText) <= 0) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please enter a valid number of max students.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
+                            final user = FirebaseAuth.instance.currentUser;
+                            if (user != null) {
+                              await FirebaseFirestore.instance
+                                  .collection('rooms')
+                                  .doc(roomCode)
+                                  .set({
+                                    'examTitle': examTitle,
+                                    'examinerId': user.uid,
+                                    'status': 'waiting',
+                                    'section': section,
+                                    'maxStudents': int.parse(maxText),
+                                    'createdAt': FieldValue.serverTimestamp(),
+                                  });
+                            }
+
+                            if (!ctx.mounted) return;
+                            Navigator.pop(ctx);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RoomWaitingScreen(
+                                  roomCode: roomCode,
+                                  examTitle: examTitle,
+                                ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2F66D0),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Continue',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -1627,6 +1768,109 @@ class _ExamViewerScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ExamProgressBar extends StatelessWidget {
+  final String title;
+  final String examinerId;
+
+  const _ExamProgressBar({required this.title, required this.examinerId});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('rooms')
+          .where('examinerId', isEqualTo: examinerId)
+          .snapshots(),
+      builder: (context, roomSnap) {
+        if (!roomSnap.hasData) {
+          return _buildBar(0.0, 'Loading...');
+        }
+
+        // Filter locally to avoid composite index
+        final activeRooms = roomSnap.data!.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>?;
+          if (data == null) return false;
+          final docTitle = (data['examTitle'] ?? '').toString().trim();
+          final status = (data['status'] ?? '').toString();
+          return docTitle == title && status == 'started';
+        }).toList();
+
+        if (activeRooms.isEmpty) {
+          return _buildBar(0.0, 'No active session');
+        }
+
+        final roomDoc = activeRooms.first;
+        final data = roomDoc.data() as Map<String, dynamic>? ?? {};
+        final maxStudentsRaw = data['maxStudents'];
+        int maxStudents = 0;
+        if (maxStudentsRaw is int) maxStudents = maxStudentsRaw;
+        if (maxStudentsRaw is String) {
+          maxStudents = int.tryParse(maxStudentsRaw) ?? 0;
+        }
+
+        if (maxStudents == 0) return _buildBar(0.0, '0 / 0 submitted');
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: roomDoc.reference.collection('participants').snapshots(),
+          builder: (context, partSnap) {
+            if (!partSnap.hasData) return _buildBar(0.0, 'Loading...');
+
+            int submittedCount = 0;
+            for (var doc in partSnap.data!.docs) {
+              final pData = doc.data() as Map<String, dynamic>? ?? {};
+              final status = pData['status'] ?? '';
+              if (status == 'finished' || status == 'completed') {
+                submittedCount++;
+              }
+            }
+
+            double progress = maxStudents > 0
+                ? (submittedCount / maxStudents).clamp(0.0, 1.0)
+                : 0.0;
+            return _buildBar(
+              progress,
+              '$submittedCount / $maxStudents submitted',
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBar(double progress, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 6,
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: const AlwaysStoppedAnimation(Color(0xFF2F66D0)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
